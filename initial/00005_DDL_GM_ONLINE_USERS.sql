@@ -1,9 +1,14 @@
-alter session set current_schema=gm_apex;
+alter session set current_schema=apex_gm;
+/*
+drop table gm_online_users;
+drop sequence gm_online_users_seq;
+*/
+
 CREATE TABLE  "GM_ONLINE_USERS" 
    (	"ONLINE_USER_ID" NUMBER, 
 	"USERNAME" NVARCHAR2(50), 
-	"LOGIN_TIMESTAMP" TIMESTAMP (6), 
-	"LAST_PING_TIMESTAMP" TIMESTAMP (6), 
+	"LOGIN_TIMESTAMP" date, 
+	"LAST_PING_TIMESTAMP" date, 
 	"SESSION_ID" NUMBER, 
 	 CONSTRAINT "GM_ONLINE_USERS_PK" PRIMARY KEY ("ONLINE_USER_ID")
   USING INDEX  ENABLE
