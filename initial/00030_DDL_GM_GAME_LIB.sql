@@ -1,3 +1,5 @@
+alter session set current_schema=apex_gm;
+
 create or replace package body GM_GAME_LIB as
 
   procedure make_checkers_board(p_game_id number) as
@@ -23,12 +25,12 @@ create or replace package body GM_GAME_LIB as
     -- A = all directions
     -- F = forward
     -- F1L2 = forward 1, right 2
-    insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 1, 'pawn', 1, 'F','https://upload.wikimedia.org/wikipedia/commons/d/d3/Chess_pgt45.svg');
-    insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 2, 'bishop', 0, 'A','https://upload.wikimedia.org/wikipedia/commons/0/0e/Chess_bgt45.svg');
-    insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 3, 'knight', 1, 'F1L2:F1R2:F2L1:F2R1','https://upload.wikimedia.org/wikipedia/commons/1/13/Chess_ngt45.svg');
-    insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 4, 'rook', 0, 'O','https://upload.wikimedia.org/wikipedia/commons/8/85/Chess_rgt45.svg');
-    insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 5, 'queen', 0, 'A', 'https://upload.wikimedia.org/wikipedia/commons/4/41/Chess_qgt45.svg');
-    insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 6, 'king', 1, 'A', 'https://upload.wikimedia.org/wikipedia/commons/7/7e/Chess_kgt45.svg');
+    insert into gm_piece_types(game_id,piece_type_id, piece_name, svg_url, n_steps_per_move, directions_allowed) values(p_game_id, 1, 'pawn'  ,'https://upload.wikimedia.org/wikipedia/commons/d/d3/Chess_pgt45.svg', 1 , '^'                                 );
+    insert into gm_piece_types(game_id,piece_type_id, piece_name, svg_url, n_steps_per_move, directions_allowed) values(p_game_id, 2, 'bishop','https://upload.wikimedia.org/wikipedia/commons/0/0e/Chess_bgt45.svg', 0 , 'X'                                 );
+    insert into gm_piece_types(game_id,piece_type_id, piece_name, svg_url, n_steps_per_move, directions_allowed) values(p_game_id, 3, 'knight','https://upload.wikimedia.org/wikipedia/commons/1/13/Chess_ngt45.svg', 1 , '^>>:^<<:>^^:<^^:v<<:v>>:>vv:>^^'   );
+    insert into gm_piece_types(game_id,piece_type_id, piece_name, svg_url, n_steps_per_move, directions_allowed) values(p_game_id, 4, 'rook'  ,'https://upload.wikimedia.org/wikipedia/commons/8/85/Chess_rgt45.svg', 0 , '+'                                 );
+    insert into gm_piece_types(game_id,piece_type_id, piece_name, svg_url, n_steps_per_move, directions_allowed) values(p_game_id, 5, 'queen' ,'https://upload.wikimedia.org/wikipedia/commons/4/41/Chess_qgt45.svg', 0 , 'O'                                 );
+    insert into gm_piece_types(game_id,piece_type_id, piece_name, svg_url, n_steps_per_move, directions_allowed) values(p_game_id, 6, 'king'  ,'https://upload.wikimedia.org/wikipedia/commons/7/7e/Chess_kgt45.svg', 1 , 'O'                                 );
 
     -- Place white pieces
     insert into gm_board_pieces(game_id,piece_type_id, x_location, y_location, player, status) values(p_game_id,4,1,1,1,1);
@@ -83,8 +85,3 @@ create or replace package body GM_GAME_LIB as
   end new_game;
   
 end GM_GAME_LIB;
-
-
-
-
-    
