@@ -4,7 +4,6 @@ drop table GM_GAMES;
 drop sequence GM_GAMES_seq;
 drop table gm_boards;
 drop table gm_board_states;
-drop sequence gm_boards_seq;
 drop table gm_piece_types;
 drop sequence gm_piece_types_seq;
 drop table gm_board_pieces;
@@ -57,7 +56,8 @@ create table gm_piece_types
   piece_type_id number,
   piece_name varchar2(50),
   n_steps_per_move number,
-  directions_allowed varchar2(100)
+  directions_allowed varchar2(100),
+  svg_url varchar2(1000)
 );
 /
 create sequence gm_piece_types_seq;
