@@ -18,3 +18,11 @@ select * from gm_boards;
 delete from gm_games;
 delete from gm_boards;
 commit;
+
+select * 
+from gm_board_states 
+where game_id=188
+order by row_number;
+
+select * from gm_piece_types;
+select * from gm_board_pieces;
