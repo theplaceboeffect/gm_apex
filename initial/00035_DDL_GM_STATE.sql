@@ -1,12 +1,17 @@
---------------------------------------------------------
---  DDL for View GM_BOARD_VIEW
---------------------------------------------------------
+<<<<<<< HEAD
+select * from GM_BOARD_VIEW;
 
-  CREATE OR REPLACE FORCE VIEW "APEX_GM"."GM_BOARD_VIEW" ("GAME_ID", "ROW_NUMBER", "CELL_1", "CELL_2", "CELL_3", "CELL_4", "CELL_5", "CELL_6", "CELL_7", "CELL_8", "CELL_9", "CELL_10", "CELL_11", "CELL_12") AS 
+=======
+alter session set current_schema=apex_gm;
+>>>>>>> 42ff3ad220937aadea25d407d83e0382b3bb19a2
+CREATE OR REPLACE FORCE VIEW  "GM_BOARD_VIEW" ("GAME_ID", "ROW_NUMBER", "CELL_1", "CELL_2", "CELL_3", "CELL_4", "CELL_5", "CELL_6", "CELL_7", "CELL_8", "CELL_9", "CELL_10", "CELL_11", "CELL_12") AS 
   with pieces as (
         select  P.game_id ,
                 P.piece_type_id ,
+<<<<<<< HEAD
                 P.piece_id ,
+=======
+>>>>>>> 42ff3ad220937aadea25d407d83e0382b3bb19a2
                 P.x_location ,
                 P.y_location ,
                 P.player ,
@@ -19,6 +24,7 @@
       )
       ,board as (
         select distinct R.game_id, R.y_location row_number, 
+<<<<<<< HEAD
            nvl('<object id="piece-' || X1.piece_id || '" player=' || X1.player || ' piece-name="' || X1.piece_name  || '" class="game-piece" type="image/svg+xml" data="' || X1.svg_url || '"/></p>','') cell_1,
            nvl('<object id="piece-' || X2.piece_id || '" player=' || X2.player || ' piece-name="' || X2.piece_name  || '" class="game-piece" type="image/svg+xml" data="' || X2.svg_url || '"/></p>','') cell_2,
            nvl('<object id="piece-' || X3.piece_id || '" player=' || X3.player || ' piece-name="' || X3.piece_name  || '" class="game-piece" type="image/svg+xml" data="' || X3.svg_url || '"/></p>','') cell_3,
@@ -27,6 +33,16 @@
            nvl('<object id="piece-' || X6.piece_id || '" player=' || X6.player || ' piece-name="' || X6.piece_name  || '" class="game-piece" type="image/svg+xml" data="' || X6.svg_url || '"/></p>','') cell_6,
            nvl('<object id="piece-' || X7.piece_id || '" player=' || X7.player || ' piece-name="' || X7.piece_name  || '" class="game-piece" type="image/svg+xml" data="' || X7.svg_url || '"/></p>','') cell_7,
            nvl('<object id="piece-' || X8.piece_id || '" player=' || X8.player || ' piece-name="' || X8.piece_name  || '" class="game-piece" type="image/svg+xml" data="' || X8.svg_url || '"/></p>','') cell_8
+=======
+           nvl('<p player=' || X1.player || ' piece_name="' || X1.piece_name  || '"><img width=70 height=70 src="' || X1.svg_url || '"/></p>','') cell_1,
+           nvl('<p player=' || X2.player || ' piece_name="' || X2.piece_name  || '"><img width=70 height=70  src="' || X2.svg_url || '"/></p>','') cell_2,
+           nvl('<p player=' || X3.player || ' piece_name="' || X3.piece_name  || '"><img width=70 height=70  src="' || X3.svg_url || '"/></p>','') cell_3,
+           nvl('<p player=' || X4.player || ' piece_name="' || X4.piece_name  || '"><img width=70 height=70  src="' || X4.svg_url || '"/></p>','') cell_4,
+           nvl('<p player=' || X5.player || ' piece_name="' || X5.piece_name  || '"><img width=70 height=70  src="' || X5.svg_url || '"/></p>','') cell_5,
+           nvl('<p player=' || X6.player || ' piece_name="' || X6.piece_name  || '"><img width=70 height=70  src="' || X6.svg_url || '"/></p>','') cell_6,
+           nvl('<p player=' || X7.player || ' piece_name="' || X7.piece_name  || '"><img width=70 height=70  src="' || X7.svg_url || '"/></p>','') cell_7,
+           nvl('<p player=' || X8.player || ' piece_name="' || X8.piece_name  || '"><img width=70 height=70  src="' || X8.svg_url || '"/></p>','') cell_8
+>>>>>>> 42ff3ad220937aadea25d407d83e0382b3bb19a2
        from gm_board_pieces R
         left join pieces X1 on R.game_id = X1.game_id and X1.x_location=1 and R.y_location = X1.y_location and X1.status <> 0
         left join pieces X2 on R.game_id = X2.game_id and X2.x_location=2 and R.y_location = X2.y_location and X1.status <> 0
@@ -56,4 +72,11 @@
     from gm_board_states S
     join gm_boards B on S.game_id = B.game_id
     left join board P on S.game_id = P.game_id and S.row_number = P.row_number
-    where S.game_id=v('P1_CURRENT_GAME');
+<<<<<<< HEAD
+    where S.game_id=v('P1_CURRENT_GAME')
+    ;
+    
+--    select * from gm_board_view where game_id in (select max(game_id) from gm_board_view);
+=======
+    where S.game_id=v('P1_CURRENT_GAME')
+>>>>>>> 42ff3ad220937aadea25d407d83e0382b3bb19a2
