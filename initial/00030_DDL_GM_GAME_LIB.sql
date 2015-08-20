@@ -1,9 +1,12 @@
 alter session set current_schema=apex_gm;
 
+
 create or replace package GM_GAME_LIB as
 
   function new_game(p_player1 nvarchar2, p_player2 nvarchar2) return number;
   procedure output_board_config(p_game_id number);
+  procedure move_piece(p_game_id number,  p_piece_id number, p_x_location number, p_y_location number);
+
 
 end GM_GAME_LIB;
 /
@@ -37,12 +40,12 @@ create or replace package body GM_GAME_LIB as
     insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 5, 'queen', 0, 'A', 'https://upload.wikimedia.org/wikipedia/commons/4/41/Chess_qgt45.svg');
     insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 6, 'king', 1, 'A', 'https://upload.wikimedia.org/wikipedia/commons/7/7e/Chess_kgt45.svg');
     */
-    insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 1, 'pawn', 1, 'F', v('APP_IMAGES') || 'pawn.svg');
-    insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 2, 'bishop', 0, 'A',v('APP_IMAGES') ||'bishop.svg');
-    insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 3, 'knight', 1, 'F1L2:F1R2:F2L1:F2R1',v('APP_IMAGES') ||'knight.svg');
-    insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 4, 'rook', 0, 'O',v('APP_IMAGES') ||'rook.svg');
-    insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 5, 'queen', 0, 'A', v('APP_IMAGES') ||'queen.svg');
-    insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 6, 'king', 1, 'A', v('APP_IMAGES') ||'king.svg');
+    insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 1, 'pawn', 1, 'F', V('APP_IMAGES') || 'pawn.svg');
+    insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 2, 'bishop', 0, 'A',V('APP_IMAGES')||'bishop.svg');
+    insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 3, 'knight', 1, 'F1L2:F1R2:F2L1:F2R1',V('APP_IMAGES')||'knight.svg');
+    insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 4, 'rook', 0, 'O',V('APP_IMAGES')||'rook.svg');
+    insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 5, 'queen', 0, 'A', V('APP_IMAGES')||'queen.svg');
+    insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 6, 'king', 1, 'A', V('APP_IMAGES')||'king.svg');
 
     -- Place white pieces
     insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,4,101,1,1,1,1);
@@ -96,6 +99,15 @@ create or replace package body GM_GAME_LIB as
     
     return v_p_game_id;
   end new_game;
+  
+  procedure move_piece(p_game_id number,  p_piece_id number, p_x_location number, p_y_location number)
+  as
+  begin
+    update gm_board_pieces
+    set x_location=p_x_location, y_location=p_y_location
+    where game_id = p_game_id
+      and piece_id = p_piece_id;
+  end;
   
   procedure output_board_config(p_game_id number)
   as

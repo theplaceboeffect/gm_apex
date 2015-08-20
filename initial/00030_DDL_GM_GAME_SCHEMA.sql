@@ -4,10 +4,6 @@ drop table GM_GAMES;
 drop sequence GM_GAMES_seq;
 drop table gm_boards;
 drop table gm_board_states;
-<<<<<<< HEAD
---drop sequence gm_boards_seq;
-=======
->>>>>>> 42ff3ad220937aadea25d407d83e0382b3bb19a2
 drop table gm_piece_types;
 drop sequence gm_piece_types_seq;
 drop table gm_board_pieces;
