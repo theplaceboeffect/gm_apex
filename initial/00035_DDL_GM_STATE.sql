@@ -1,17 +1,40 @@
-<<<<<<< HEAD
-select * from GM_BOARD_VIEW;
-
-=======
 alter session set current_schema=apex_gm;
->>>>>>> 42ff3ad220937aadea25d407d83e0382b3bb19a2
-CREATE OR REPLACE FORCE VIEW  "GM_BOARD_VIEW" ("GAME_ID", "ROW_NUMBER", "CELL_1", "CELL_2", "CELL_3", "CELL_4", "CELL_5", "CELL_6", "CELL_7", "CELL_8", "CELL_9", "CELL_10", "CELL_11", "CELL_12") AS 
+create or replace view gm_game_state as
   with pieces as (
         select  P.game_id ,
                 P.piece_type_id ,
-<<<<<<< HEAD
                 P.piece_id ,
-=======
->>>>>>> 42ff3ad220937aadea25d407d83e0382b3bb19a2
+                P.x_location ,
+                P.y_location ,
+                P.player ,
+                P.status 
+        from gm_board_pieces P
+  )
+  select * from pieces;
+
+declare
+  c sys_refcursor;
+begin
+  open c for
+    select * 
+    from pieces
+    where game_id=1;
+    apex_json.write(c);
+
+end;
+
+select * 
+from gm_game_state
+where game_id=:P1_CURRENT_GAME
+order by row_number;
+
+/*
+CREATE OR REPLACE FORCE VIEW  "GM_BOARD_VIEW" ("GAME_ID", "ROW_NUMBER", "CELL_1", "CELL_2", "CELL_3", "CELL_4", "CELL_5", "CELL_6", "CELL_7", "CELL_8", "CELL_9", "CELL_10", "CELL_11", "CELL_12") AS 
+  with pieces as (
+        select  P.game_id ,
+        
+                P.piece_type_id ,
+                P.piece_id ,
                 P.x_location ,
                 P.y_location ,
                 P.player ,
@@ -80,3 +103,4 @@ CREATE OR REPLACE FORCE VIEW  "GM_BOARD_VIEW" ("GAME_ID", "ROW_NUMBER", "CELL_1"
 =======
     where S.game_id=v('P1_CURRENT_GAME')
 >>>>>>> 42ff3ad220937aadea25d407d83e0382b3bb19a2
+*/
