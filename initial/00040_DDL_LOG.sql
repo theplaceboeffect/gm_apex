@@ -25,3 +25,9 @@ begin
 end;
 
 create view l as select * from log_data order by id desc;
+
+select * from l;
+
+
+select * from gm_board_pieces where piece_id=109 and game_id=1;
+

@@ -18,8 +18,8 @@ create or replace package body GM_GAME_LIB as
   begin
 
     -- Initialize the game board.
-    insert into gm_boards(game_id, max_cols, max_rows, board_type) 
-                values (p_game_id, 8, 8, 'chess');
+    insert into gm_boards(game_id, max_cols, max_rows, board_type, lastmove_count) 
+                values (p_game_id, 8, 8, 'chess', 0);
 
     for v_row_number in 0..3
     loop

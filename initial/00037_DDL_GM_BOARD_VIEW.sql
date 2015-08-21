@@ -1,8 +1,16 @@
---------------------------------------------------------
---  DDL for View GM_BOARD_VIEW
---------------------------------------------------------
+create or replace function format_piece(piece_id number, player_number number, piece_name nvarchar2, svg_url nvarchar2, x_pos number, y_pos number) return nvarchar2 as
+begin
 
-  CREATE OR REPLACE FORCE VIEW gm_board_view as
+  if piece_id is null then 
+    return ' ';
+  else
+    return '<img id="piece-' || piece_id || '" player=' || player_number || ' location="' || x_pos || '.' || y_pos || '" piece-name="' || piece_name  || '" class="game-piece" type="image/svg+xml" src="' || svg_url || '"/>';
+  --return '[' || piece_id || '-' || piece_name || ':' || x_pos || ',' || y_pos || ']';
+  end if;
+
+end;
+/
+CREATE OR REPLACE FORCE VIEW gm_board_view as
   with pieces as (
         select  P.game_id ,
                 P.piece_type_id ,
@@ -14,51 +22,35 @@
                 T.piece_name,
                 T.svg_url
         from gm_board_pieces P
-        join gm_piece_types T on P.piece_type_id = T.piece_type_id and T.game_id = P.game_id
+        join gm_piece_types T on P.piece_type_id = T.piece_type_id and P.game_id = T.game_id
       )
-      ,board as (
-        select distinct R.game_id, R.y_location row_number, 
-/*
-           -- original
-           nvl('<object id="piece-' || X1.piece_id || '" player=' || X1.player || ' piece-name="' || X1.piece_name  || '" class="game-piece" type="image/svg+xml" data="' || X1.svg_url || '"/></p>','') cell_1,
-           nvl('<object id="piece-' || X2.piece_id || '" player=' || X2.player || ' piece-name="' || X2.piece_name  || '" class="game-piece" type="image/svg+xml" data="' || X2.svg_url || '"/></p>','') cell_2,
-           nvl('<object id="piece-' || X3.piece_id || '" player=' || X3.player || ' piece-name="' || X3.piece_name  || '" class="game-piece" type="image/svg+xml" data="' || X3.svg_url || '"/></p>','') cell_3,
-           nvl('<object id="piece-' || X4.piece_id || '" player=' || X4.player || ' piece-name="' || X4.piece_name  || '" class="game-piece" type="image/svg+xml" data="' || X4.svg_url || '"/></p>','') cell_4,
-           nvl('<object id="piece-' || X5.piece_id || '" player=' || X5.player || ' piece-name="' || X5.piece_name  || '" class="game-piece" type="image/svg+xml" data="' || X5.svg_url || '"/></p>','') cell_5,
-           nvl('<object id="piece-' || X6.piece_id || '" player=' || X6.player || ' piece-name="' || X6.piece_name  || '" class="game-piece" type="image/svg+xml" data="' || X6.svg_url || '"/></p>','') cell_6,
-           nvl('<object id="piece-' || X7.piece_id || '" player=' || X7.player || ' piece-name="' || X7.piece_name  || '" class="game-piece" type="image/svg+xml" data="' || X7.svg_url || '"/></p>','') cell_7,
-           nvl('<object id="piece-' || X8.piece_id || '" player=' || X8.player || ' piece-name="' || X8.piece_name  || '" class="game-piece" type="image/svg+xml" data="' || X8.svg_url || '"/></p>','') cell_8
-           -- v2: with div objects
-*/
-
-           nvl('<img id="piece-' || X1.piece_id || '" player=' || X1.player || ' piece-name="' || X1.piece_name  || '" class="game-piece" type="image/svg+xml" src="' || X1.svg_url || '"/>','') cell_1,
-           nvl('<img id="piece-' || X2.piece_id || '" player=' || X2.player || ' piece-name="' || X2.piece_name  || '" class="game-piece" type="image/svg+xml" src="' || X2.svg_url || '"/>','') cell_2,
-           nvl('<img id="piece-' || X3.piece_id || '" player=' || X3.player || ' piece-name="' || X3.piece_name  || '" class="game-piece" type="image/svg+xml" src="' || X3.svg_url || '"/>','') cell_3,
-           nvl('<img id="piece-' || X4.piece_id || '" player=' || X4.player || ' piece-name="' || X4.piece_name  || '" class="game-piece" type="image/svg+xml" src="' || X4.svg_url || '"/>','') cell_4,
-           nvl('<img id="piece-' || X5.piece_id || '" player=' || X5.player || ' piece-name="' || X5.piece_name  || '" class="game-piece" type="image/svg+xml" src="' || X5.svg_url || '"/>','') cell_5,
-           nvl('<img id="piece-' || X6.piece_id || '" player=' || X6.player || ' piece-name="' || X6.piece_name  || '" class="game-piece" type="image/svg+xml" src="' || X6.svg_url || '"/>','') cell_6,
-           nvl('<img id="piece-' || X7.piece_id || '" player=' || X7.player || ' piece-name="' || X7.piece_name  || '" class="game-piece" type="image/svg+xml" src="' || X7.svg_url || '"/>','') cell_7,
-           nvl('<img id="piece-' || X8.piece_id || '" player=' || X8.player || ' piece-name="' || X8.piece_name  || '" class="game-piece" type="image/svg+xml" src="' || X8.svg_url || '"/>','') cell_8
-
-/*
-           nvl('<div>' || X1.piece_name  || '</div>','') cell_1,
-           nvl('<div>' || X2.piece_name  || '</div>','') cell_2,
-           nvl('<div>' || X3.piece_name  || '</div>','') cell_3,
-           nvl('<div>' || X4.piece_name  || '</div>','') cell_4,
-           nvl('<div>' || X5.piece_name  || '</div>','') cell_5,
-           nvl('<div>' || X6.piece_name  || '</div>','') cell_6,
-           nvl('<div>' || X7.piece_name  || '</div>','') cell_7,
-           nvl('<div>' || X8.piece_name  || '</div>','') cell_8
-*/
+      , occupied_rows as (
+        select distinct R.game_id, R.y_location
         from gm_board_pieces R
+      )
+--      select format_piece(X2.piece_id, X2.player, X2.piece_name, X2.svg_url, 2, R.y_location) 
+--      from occupied_rows R left join pieces X2 on r.game_id=x2.game_id and x2.x_location=2 and r.y_location=x2.y_location and x2.status <> 0;
+
+
+      ,board as (
+        select R.game_id, R.y_location row_number, 
+           format_piece(X1.piece_id, X1.player, X1.piece_name, X1.svg_url, 1, R.y_location) cell_1,
+           format_piece(X2.piece_id, X2.player, X2.piece_name, X2.svg_url, 2, R.y_location) cell_2,
+           format_piece(X3.piece_id, X3.player, X3.piece_name, X3.svg_url, 3, R.y_location) cell_3,
+           format_piece(X4.piece_id, X4.player, X4.piece_name, X4.svg_url, 4, R.y_location) cell_4,
+           format_piece(X5.piece_id, X5.player, X5.piece_name, X5.svg_url, 5, R.y_location) cell_5,
+           format_piece(X6.piece_id, X6.player, X6.piece_name, X6.svg_url, 6, R.y_location) cell_6,
+           format_piece(X7.piece_id, X7.player, X7.piece_name, X7.svg_url, 7, R.y_location) cell_7,
+           format_piece(X8.piece_id, X8.player, X8.piece_name, X8.svg_url, 8, R.y_location) cell_8
+        from occupied_rows R
           left join pieces X1 on R.game_id = X1.game_id and X1.x_location=1 and R.y_location = X1.y_location and X1.status <> 0
-          left join pieces X2 on R.game_id = X2.game_id and X2.x_location=2 and R.y_location = X2.y_location and X1.status <> 0
-          left join pieces X3 on R.game_id = X3.game_id and X3.x_location=3 and R.y_location = X3.y_location and X1.status <> 0
-          left join pieces X4 on R.game_id = X4.game_id and X4.x_location=4 and R.y_location = X4.y_location and X1.status <> 0
-          left join pieces X5 on R.game_id = X5.game_id and X5.x_location=5 and R.y_location = X5.y_location and X1.status <> 0
-          left join pieces X6 on R.game_id = X6.game_id and X6.x_location=6 and R.y_location = X6.y_location and X1.status <> 0
-          left join pieces X7 on R.game_id = X7.game_id and X7.x_location=7 and R.y_location = X7.y_location and X1.status <> 0
-          left join pieces X8 on R.game_id = X8.game_id and X8.x_location=8 and R.y_location = X8.y_location and X1.status <> 0
+          left join pieces X2 on R.game_id = X2.game_id and X2.x_location=2 and R.y_location = X2.y_location and X2.status <> 0
+          left join pieces X3 on R.game_id = X3.game_id and X3.x_location=3 and R.y_location = X3.y_location and X3.status <> 0
+          left join pieces X4 on R.game_id = X4.game_id and X4.x_location=4 and R.y_location = X4.y_location and X4.status <> 0
+          left join pieces X5 on R.game_id = X5.game_id and X5.x_location=5 and R.y_location = X5.y_location and X5.status <> 0
+          left join pieces X6 on R.game_id = X6.game_id and X6.x_location=6 and R.y_location = X6.y_location and X6.status <> 0
+          left join pieces X7 on R.game_id = X7.game_id and X7.x_location=7 and R.y_location = X7.y_location and X7.status <> 0
+          left join pieces X8 on R.game_id = X8.game_id and X8.x_location=8 and R.y_location = X8.y_location and X8.status <> 0
         
     )
     select
@@ -81,8 +73,8 @@
       '<div id="loc-11-' || S.row_number || '" class="board_location" type="' || B.board_type || '-' || S.cell_12 || '">' || '' || '</div>' cell_12
     from gm_board_states S
     join gm_boards B on S.game_id = B.game_id
-    left join board P on S.game_id = P.game_id and S.row_number = P.row_number and S.game_id=P.game_id;
-
-
-
-select * from gm_board_view where game_id=1 order by row_number;
+    left join board P on S.game_id = P.game_id and S.row_number = P.row_number and S.game_id=P.game_id
+    ;
+/
+--
+select * from gm_board_view where game_id=1 and row_number=2 order by row_number;

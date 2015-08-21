@@ -17,6 +17,7 @@ create table  gm_games
   player2 nvarchar2(50),
   gamestart_timestamp date,
   lastmove_timestamp date,
+  lastmove_count number,
   constraint game_id_pk primary key (game_id)
 )
 /
