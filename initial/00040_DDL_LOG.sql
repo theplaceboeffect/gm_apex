@@ -1,11 +1,15 @@
 alter session set current_schema=apex_gm;
 
-create table log ( id number, t timestamp, message varchar2(1000));
+drop table log_data;
+drop sequence log_sequence;
+drop procedure log_message;
+/
+create table log_data ( id number, t timestamp, message nvarchar2(1000));
 create sequence log_sequence;
 
 set define off
 create or replace trigger bi_log
-before insert on log
+before insert on log_data
 for each row
 begin
   if :new.id is null then
@@ -14,3 +18,10 @@ begin
   
   select current_timestamp into :new.t from dual;
 end;
+
+create or replace procedure log_message(p_message nvarchar2) as
+begin
+  insert into log_data(message) values(p_message);
+end;
+
+create view l as select * from log_data order by id desc;

@@ -103,10 +103,13 @@ create or replace package body GM_GAME_LIB as
   procedure move_piece(p_game_id number,  p_piece_id number, p_x_location number, p_y_location number)
   as
   begin
+    log_message('move_piece: [p_game_id:' || p_game_id || '][p_piece_id:' || p_piece_id || '][x: ' || p_x_location || '][y: ' || p_y_location || ']');
+
     update gm_board_pieces
     set x_location=p_x_location, y_location=p_y_location
     where game_id = p_game_id
       and piece_id = p_piece_id;
+
   end;
   
   procedure output_board_config(p_game_id number)
