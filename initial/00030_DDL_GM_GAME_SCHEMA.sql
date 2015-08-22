@@ -34,7 +34,7 @@ create table gm_boards
 create table gm_board_states
 (
   game_id number,
-  row_number number,
+  y_pos number,
   cell_1 number,
   cell_2 number,
   cell_3 number,
@@ -47,7 +47,7 @@ create table gm_board_states
   cell_10 number,
   cell_11 number,
   cell_12 number,
-  constraint board_id_pk primary key (game_id, row_number)
+  constraint board_id_pk primary key (game_id, y_pos)
 
 );
 /

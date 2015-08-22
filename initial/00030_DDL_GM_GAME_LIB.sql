@@ -13,21 +13,21 @@ end GM_GAME_LIB;
 create or replace package body GM_GAME_LIB as
 
   procedure make_chess_board(p_game_id number) as
-    v_row_number number;
+    v_y_position number;
     v_board_id number;
   begin
 
     -- Initialize the game board.
-    insert into gm_boards(game_id, max_cols, max_rows, board_type, lastmove_count) 
-                values (p_game_id, 8, 8, 'chess', 0);
+    insert into gm_boards(game_id, max_cols, max_rows, board_type) 
+                values (p_game_id, 8, 8, 'chess');
 
-    for v_row_number in 0..3
+    for v_y_position in 0..3
     loop
 
-      insert into gm_board_states(game_id, row_number, cell_1, cell_2, cell_3, cell_4, cell_5, cell_6, cell_7, cell_8) 
-                  values (p_game_id, (v_row_number*2)+2,  0, 1, 0, 1, 0, 1, 0, 1);
-      insert into gm_board_states(game_id, row_number, cell_1, cell_2, cell_3, cell_4, cell_5, cell_6, cell_7, cell_8) 
-                  values (p_game_id, (v_row_number*2)+1,  1, 0, 1, 0, 1, 0, 1, 0);
+      insert into gm_board_states(game_id, y_position, cell_1, cell_2, cell_3, cell_4, cell_5, cell_6, cell_7, cell_8) 
+                  values (p_game_id, (v_y_position*2)+2,  0, 1, 0, 1, 0, 1, 0, 1);
+      insert into gm_board_states(game_id, y_position, cell_1, cell_2, cell_3, cell_4, cell_5, cell_6, cell_7, cell_8) 
+                  values (p_game_id, (v_y_position*2)+1,  1, 0, 1, 0, 1, 0, 1, 0);
       
     end loop;
     
@@ -92,8 +92,8 @@ create or replace package body GM_GAME_LIB as
     v_p_game_id number;
   begin
     select gm_games_seq.nextval into v_p_game_id from sys.dual;  
-    insert into gm_games(game_id,   player1,  player2,  gamestart_timestamp,  lastmove_timestamp) 
-                  values(v_p_game_id, p_player1, p_player2, sysdate, sysdate);
+    insert into gm_games(game_id,   player1,  player2,  gamestart_timestamp,  lastmove_timestamp, lastmove_count) 
+                  values(v_p_game_id, p_player1, p_player2, sysdate, sysdate, 0);
     
     make_chess_board(v_p_game_id);
     
@@ -110,6 +110,7 @@ create or replace package body GM_GAME_LIB as
     where game_id = p_game_id
       and piece_id = p_piece_id;
 
+    update gm_games set lastmove_count=lastmove_count+1 where game_id = p_game_id;
   end;
   
   procedure output_board_config(p_game_id number)
