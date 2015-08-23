@@ -5,7 +5,7 @@ create or replace package GM_GAME_LIB as
 
   function new_game(p_player1 nvarchar2, p_player2 nvarchar2) return number;
   procedure output_board_config(p_game_id number);
-  procedure move_piece(p_game_id number,  p_piece_id number, p_x_location number, p_y_location number);
+  procedure move_piece(p_game_id number,  p_piece_id number, p_x_pos number, p_y_pos number);
 
 
 end GM_GAME_LIB;
@@ -13,7 +13,7 @@ end GM_GAME_LIB;
 create or replace package body GM_GAME_LIB as
 
   procedure make_chess_board(p_game_id number) as
-    v_y_position number;
+    v_y_pos number;
     v_board_id number;
   begin
 
@@ -21,13 +21,13 @@ create or replace package body GM_GAME_LIB as
     insert into gm_boards(game_id, max_cols, max_rows, board_type) 
                 values (p_game_id, 8, 8, 'chess');
 
-    for v_y_position in 0..3
+    for v_y_pos in 0..3
     loop
 
-      insert into gm_board_states(game_id, y_position, cell_1, cell_2, cell_3, cell_4, cell_5, cell_6, cell_7, cell_8) 
-                  values (p_game_id, (v_y_position*2)+2,  0, 1, 0, 1, 0, 1, 0, 1);
-      insert into gm_board_states(game_id, y_position, cell_1, cell_2, cell_3, cell_4, cell_5, cell_6, cell_7, cell_8) 
-                  values (p_game_id, (v_y_position*2)+1,  1, 0, 1, 0, 1, 0, 1, 0);
+      insert into gm_board_states(game_id, y_pos, cell_1, cell_2, cell_3, cell_4, cell_5, cell_6, cell_7, cell_8) 
+                  values (p_game_id, (v_y_pos*2)+2,  0, 1, 0, 1, 0, 1, 0, 1);
+      insert into gm_board_states(game_id, y_pos, cell_1, cell_2, cell_3, cell_4, cell_5, cell_6, cell_7, cell_8) 
+                  values (p_game_id, (v_y_pos*2)+1,  1, 0, 1, 0, 1, 0, 1, 0);
       
     end loop;
     
@@ -48,42 +48,42 @@ create or replace package body GM_GAME_LIB as
     insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 6, 'king', 1, 'A', V('APP_IMAGES')||'king.svg');
 
     -- Place white pieces
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,4,101,1,1,1,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,3,102,2,1,1,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,2,103,3,1,1,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,5,104,4,1,1,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,6,105,5,1,1,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,2,106,6,1,1,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,3,107,7,1,1,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,4,108,8,1,1,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,4,101,1,1,1,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,3,102,2,1,1,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,2,103,3,1,1,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,5,104,4,1,1,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,6,105,5,1,1,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,2,106,6,1,1,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,3,107,7,1,1,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,4,108,8,1,1,1);
   
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,1,109,1,2,1,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,1,110,2,2,1,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,1,111,3,2,1,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,1,112,4,2,1,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,1,113,5,2,1,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,1,114,6,2,1,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,1,115,7,2,1,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,1,116,8,2,1,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,1,109,1,2,1,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,1,110,2,2,1,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,1,111,3,2,1,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,1,112,4,2,1,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,1,113,5,2,1,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,1,114,6,2,1,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,1,115,7,2,1,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,1,116,8,2,1,1);
     
     -- Place black pieces
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,4,201,1,8,2,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,3,202,2,8,2,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,2,203,3,8,2,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,5,204,4,8,2,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,6,205,5,8,2,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,2,206,6,8,2,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,3,207,7,8,2,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,4,208,8,8,2,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,4,201,1,8,2,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,3,202,2,8,2,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,2,203,3,8,2,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,5,204,4,8,2,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,6,205,5,8,2,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,2,206,6,8,2,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,3,207,7,8,2,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,4,208,8,8,2,1);
   
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,1,209,1,7,2,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,1,210,2,7,2,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,1,211,3,7,2,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,1,212,4,7,2,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,1,213,5,7,2,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,1,214,6,7,2,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,1,215,7,7,2,1);
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_location, y_location, player, status) values(p_game_id,1,216,8,7,2,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,1,209,1,7,2,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,1,210,2,7,2,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,1,211,3,7,2,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,1,212,4,7,2,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,1,213,5,7,2,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,1,214,6,7,2,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,1,215,7,7,2,1);
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, x_pos, y_pos, player, status) values(p_game_id,1,216,8,7,2,1);
 
   end make_chess_board;
   
@@ -100,15 +100,17 @@ create or replace package body GM_GAME_LIB as
     return v_p_game_id;
   end new_game;
   
-  procedure move_piece(p_game_id number,  p_piece_id number, p_x_location number, p_y_location number)
+  procedure move_piece(p_game_id number,  p_piece_id number, p_x_pos number, p_y_pos number)
   as
+    n_pieces number;
   begin
-    log_message('move_piece: [p_game_id:' || p_game_id || '][p_piece_id:' || p_piece_id || '][x: ' || p_x_location || '][y: ' || p_y_location || ']');
+    --log_message('move_piece: [p_game_id:' || p_game_id || '][p_piece_id:' || p_piece_id || '][x: ' || p_x_pos || '][y: ' || p_y_pos || ']');
 
     update gm_board_pieces
-    set x_location=p_x_location, y_location=p_y_location
+    set x_pos=p_x_pos, y_pos=p_y_pos
     where game_id = p_game_id
-      and piece_id = p_piece_id;
+      and piece_id = p_piece_id
+      and not exists (select * from gm_board_pieces where game_id = p_game_id and x_pos=p_x_pos and y_pos=p_y_pos);
 
     update gm_games set lastmove_count=lastmove_count+1 where game_id = p_game_id;
   end;
