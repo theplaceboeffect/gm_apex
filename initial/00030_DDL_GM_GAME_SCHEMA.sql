@@ -68,8 +68,8 @@ create table gm_board_pieces
   game_id number,
   piece_type_id number,
   piece_id number,
-  x_location number,
-  y_location number,
+  x_pos number,
+  y_pos number,
   player varchar2(50),
   status number
 );

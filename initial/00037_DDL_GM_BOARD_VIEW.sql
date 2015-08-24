@@ -1,10 +1,19 @@
+
+--select * from gm_board_view;
+
 create or replace function format_piece(piece_id number, player_number number, piece_name nvarchar2, svg_url nvarchar2, x_pos number, y_pos number) return nvarchar2 as
 begin
 
   if piece_id is null then 
     return ' ';
   else
-    return '<img id="piece-' || piece_id || '" player=' || player_number || ' xpos=1 ypos=' || y_pos || ' location="' || x_pos || '.' || y_pos || '" piece-name="' || piece_name  || '" class="game-piece" type="image/svg+xml" src="' || svg_url || '"/>';
+  --- Unicode
+  --return '<p id="piece-' || piece_id || '" player=' || player_number || ' xpos=1 ypos=' || y_pos || ' location="' || x_pos || '.' || y_pos || '" piece-name="' || piece_name  || '" class="game-piece">' || svg_url || '</p>';
+
+  --- SVG images
+  return '<img id="piece-' || piece_id || '" player=' || player_number || ' xpos=1 ypos=' || y_pos || ' location="' || x_pos || '.' || y_pos || '" piece-name="' || piece_name  || '" class="game-piece" type="image/svg+xml" src="' || svg_url || '"/>';
+
+  --- Debugging
   --return '[' || piece_id || '-' || piece_name || ':' || x_pos || ',' || y_pos || ']';
   end if;
 
@@ -76,5 +85,3 @@ CREATE OR REPLACE FORCE VIEW gm_board_view as
     left join board P on S.game_id = P.game_id and S.y_pos = P.y_pos and S.game_id=P.game_id
     ;
 /
---
-select * from gm_board_view where game_id=1 and y_pos=2 order by y_pos;
