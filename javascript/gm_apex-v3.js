@@ -69,7 +69,8 @@
         }
         
         this.reset_board_location_highlights=function reset_board_location_highlights() {
-            $('.board-location').css('border','0px');
+            //$('.board-location').css('border','0px');
+			$('.board-location').removeClass('bad-location');
         }
     }
     //----------------------------------------------------
@@ -86,7 +87,8 @@
 
                             if (typeof(occupied_by) !== 'undefined' && occupied_by != el.getAttribute('id') )
                             {
-                                $("#"+target.getAttribute('id')).css('border','2px solid red');
+                                //$("#"+target.getAttribute('id')).css('border','2px solid red');
+                                $("#"+target.getAttribute('id')).addClass('bad-location');
                                 return false;                                
                             }
     
