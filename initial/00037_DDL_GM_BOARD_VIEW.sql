@@ -94,6 +94,11 @@ begin
 */
       -- CANNOT JUMP
       if move_choice = '^' then
+        if not stop_moving then
+          next_position := move_in_direction(p_game_id, v_piece.player, 0 /* xmovement*/, (v_piece.y_pos + distance_per_step), stop_moving);
+        end if;
+        
+        
         stop_moving := false;
         for step in 1..max_distance_per_move loop
           next_position := gm_generate_board_location(p_game_id, v_piece.x_pos , (v_piece.y_pos + distance_per_step) );
