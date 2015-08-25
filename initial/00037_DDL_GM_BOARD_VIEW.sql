@@ -38,6 +38,8 @@ as
   distance_per_step number;
   step number;
   max_distance_per_move number;
+  next_position varchar2(100);
+  stop_moving boolean;
 begin
 
   select P.* into v_piece from gm_board_pieces P where P.piece_id = p_piece_id and P.game_id=p_game_id;
@@ -61,6 +63,7 @@ begin
 
     distance_per_step := (1 * y_direction);
 
+/*    -- IF CAN JUMP 
     for step in 1..max_distance_per_move loop
       case 
       when move_choice = '^' then
@@ -87,7 +90,108 @@ begin
       else
         null;
       end case;
-    end loop;    
+    end loop;
+*/
+      -- CANNOT JUMP
+      if move_choice = '^' then
+        stop_moving := false;
+        for step in 1..max_distance_per_move loop
+          next_position := gm_generate_board_location(p_game_id, v_piece.x_pos , (v_piece.y_pos + distance_per_step) );
+          if next_position is null then
+            stop_moving := true;
+          end if;
+          if not stop_moving then
+            v_positions := v_positions || next_position;
+          end if;
+        end loop;
+      end if;
+      
+      if move_choice = 'X' or move_choice='O' then 
+        stop_moving := false;
+        for step in 1..max_distance_per_move loop
+          next_position := gm_generate_board_location(p_game_id, (v_piece.x_pos - step*distance_per_step) , (v_piece.y_pos - step*distance_per_step) );
+          if next_position is null then
+            stop_moving := true;
+          end if;
+          if not stop_moving then
+            v_positions := v_positions || next_position;
+          end if;
+        end loop;
+        stop_moving := false;
+        for step in 1..max_distance_per_move loop
+          next_position := gm_generate_board_location(p_game_id, (v_piece.x_pos - step*distance_per_step) , (v_piece.y_pos + step*distance_per_step) );
+          if next_position is null then
+            stop_moving := true;
+          end if;
+          if not stop_moving then
+            v_positions := v_positions || next_position;
+          end if;
+        end loop;
+        stop_moving := false;
+        for step in 1..max_distance_per_move loop
+          next_position := gm_generate_board_location(p_game_id, (v_piece.x_pos + step*distance_per_step) , (v_piece.y_pos - step*distance_per_step) );
+          if next_position is null then
+            stop_moving := true;
+          end if;
+          if not stop_moving then
+            v_positions := v_positions || next_position;
+          end if;
+        end loop;
+        stop_moving := false;
+        for step in 1..max_distance_per_move loop
+          next_position := gm_generate_board_location(p_game_id, (v_piece.x_pos + step*distance_per_step) , (v_piece.y_pos + step*distance_per_step) );
+          if next_position is null then
+            stop_moving := true;
+          end if;
+          if not stop_moving then
+            v_positions := v_positions || next_position;
+          end if;
+        end loop;
+      end if;
+      
+      if move_choice = '+' or move_choice='O' then 
+        stop_moving := false;
+        for step in 1..max_distance_per_move loop
+          next_position := gm_generate_board_location(p_game_id, (v_piece.x_pos) , (v_piece.y_pos - step*distance_per_step) );
+          if next_position is null then
+            stop_moving := true;
+          end if;
+          if not stop_moving then
+            v_positions := v_positions || next_position;
+          end if;
+        end loop;
+        stop_moving := false;
+        for step in 1..max_distance_per_move loop
+          next_position := gm_generate_board_location(p_game_id, (v_piece.x_pos) , (v_piece.y_pos + step*distance_per_step) );
+          if next_position is null then
+            stop_moving := true;
+          end if;
+          if not stop_moving then
+            v_positions := v_positions || next_position;
+          end if;
+        end loop;
+        stop_moving := false;
+        for step in 1..max_distance_per_move loop
+          next_position := gm_generate_board_location(p_game_id, (v_piece.x_pos + step*distance_per_step) , (v_piece.y_pos) );
+          if next_position is null then
+            stop_moving := true;
+          end if;
+          if not stop_moving then
+            v_positions := v_positions || next_position;
+          end if;
+        end loop;
+        stop_moving := false;
+        for step in 1..max_distance_per_move loop
+          next_position := gm_generate_board_location(p_game_id, (v_piece.x_pos - step*distance_per_step) , (v_piece.y_pos) );
+          if next_position is null then
+            stop_moving := true;
+          end if;
+          if not stop_moving then
+            v_positions := v_positions || next_position;
+          end if;
+        end loop;
+      end if;
+      
   end loop;
   
   -- For each move combination (: - separated)
