@@ -1,27 +1,26 @@
 alter session set current_schema=apex_gm;
 
+select gm_game_lib.gm_calc_valid_squares(3, 101) from dual;
 
 create or replace package GM_GAME_LIB as
 
-  function gm_move_in_direction( p_piece gm_board_pieces%rowtype, p_max_distance_per_move number,p_x_steps number, p_y_steps number) return nvarchar2;
+  function gm_move_in_direction( p_piece gm_board_pieces%rowtype, p_max_distance_per_move number,p_x_steps number, p_y_steps number, new_xpos in out number, new_ypos in out number) return nvarchar2;
   function gm_calc_valid_squares(p_game_id number, p_piece_id number) return varchar2;
   function format_piece(game_id number, piece_id number, player_number number, piece_name nvarchar2, svg_url nvarchar2, x_pos number, y_pos number) return nvarchar2;
-  
 
   function new_game(p_player1 nvarchar2, p_player2 nvarchar2) return number;
   procedure output_board_config(p_game_id number);
   procedure move_piece(p_game_id number, p_piece_id number, p_x_pos number, p_y_pos number);
 
-
 end GM_GAME_LIB;
 /
 create or replace package body GM_GAME_LIB as
-  function gm_move_in_direction( p_piece gm_board_pieces%rowtype, p_max_distance_per_move number,p_x_steps number, p_y_steps number) return nvarchar2
+  function gm_move_in_direction( p_piece gm_board_pieces%rowtype, p_max_distance_per_move number,p_x_steps number, p_y_steps number, new_xpos in out number, new_ypos in out number) return nvarchar2
   as
-    new_position varchar2(10);
-    return_positions varchar2(1000);
-    new_xpos number;
-    new_ypos number;
+    new_position varchar2(100);
+    return_positions varchar2(2000);
+    --new_xpos number;
+    --new_ypos number;
     player_occupying_square number;
     n number;
     stop_moving boolean;
@@ -30,8 +29,11 @@ create or replace package body GM_GAME_LIB as
   
     stop_moving := false;
     for step in 1..p_max_distance_per_move loop
-      new_xpos := p_piece.x_pos + step * p_x_steps;
-      new_ypos := p_piece.y_pos + step * p_y_steps;
+      --return_positions := return_positions || '{' || new_xpos || ',' || new_ypos || '}';
+      new_xpos := nvl(new_xpos, p_piece.x_pos) + step * p_x_steps;
+      new_ypos := nvl(new_ypos, p_piece.y_pos) + step * p_y_steps;
+      --return_positions := return_positions || '{' || new_xpos || ',' || new_ypos || ' step:' || step || ' ' || p_x_steps || ',' || p_y_steps || '}';
+      
       if not stop_moving then
         -- if out of bounds then don't move further
         if new_xpos < 1 or new_xpos > 8 or new_ypos < 1 or new_ypos > 8 then
@@ -67,11 +69,13 @@ create or replace package body GM_GAME_LIB as
   
     v_piece gm_board_pieces%rowtype;
     v_piece_definition gm_piece_types%rowtype;
-    v_positions varchar2(1000);
+    v_positions varchar2(4000);
     v_move_choices apex_application_global.vc_arr2;
     move_choice varchar2(100);
+    move_step varchar(1);
     new_x number;
     new_y number;
+    new_position varchar2(50);
     y_direction number;
     distance_per_step number;
     step number;
@@ -81,46 +85,66 @@ create or replace package body GM_GAME_LIB as
   begin
   
     select P.* into v_piece from gm_board_pieces P where P.piece_id = p_piece_id and P.game_id=p_game_id;
+    
+    if v_piece.status = 0 then
+      return '';
+    end if;
+    
     select PT.* into v_piece_definition from gm_piece_types PT where PT.piece_type_id = v_piece.piece_type_id and PT.game_id=p_game_id;
     
     -- Flip the y direction if the second player
     if v_piece.player = 1 then y_direction := 1; else y_direction := -1 ;end if;
     
+    
+    -- define the furthest a piece can move.
+    if v_piece_definition.n_steps_per_move = 0 then
+      max_distance_per_move := 8; --TODO: Replace with board size 
+    else
+      max_distance_per_move := v_piece_definition.n_steps_per_move;
+    end if;
+
+    -- define how many steps (currently 1) that a piece takes per move
+    distance_per_step := (1 * y_direction);
+
     -- Current position is also valid!
     v_positions := 'loc-' || v_piece.x_pos || '-' || v_piece.y_pos || ':';
     
     v_move_choices := apex_util.string_to_table(v_piece_definition.directions_allowed,':');
     for z in 1..v_move_choices.count loop
       move_choice := v_move_choices(z);
+      --v_positions:=v_positions||'**[DEBUG:move_choice' || move_choice || ']';
+      new_x :=null;
+      new_y :=null;
+      
+      for c in 1..length(move_choice) loop
+        move_step := substr(move_choice,c,1);
+        --v_positions := v_positions || '[DEBUG1:' || move_step || new_x || ',' || new_y || ']**' || chr(13);
+
+        if move_step = '^' or move_step = '+' or move_step='O'then        
+          v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, 0, distance_per_step, new_x, new_y);
+        end if;
+    
+        if move_step = 'v' or move_step = '+' or move_step='O'then        
+          v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, 0, (-distance_per_step), new_x, new_y);
+        end if;
   
-      if v_piece_definition.n_steps_per_move = 0 then
-        max_distance_per_move := 8; --TODO: Replace with board size 
-      else
-        max_distance_per_move := v_piece_definition.n_steps_per_move;
-      end if;
+        if move_step = '<' or move_step = '+' or move_step='O'then        
+          v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (-distance_per_step), 0, new_x, new_y);
+        end if;
   
-      distance_per_step := (1 * y_direction);
-      -- CANNOT JUMP
-      if move_choice = '^' then        
-        v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, 0, distance_per_step);
-      end if;
+        if move_step = '>' or move_step = '+' or move_step='O'then        
+          v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (distance_per_step), 0, new_x, new_y);
+        end if;
   
-      if move_choice = 'X' or move_choice='O' then    
-        v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (distance_per_step), (-distance_per_step));
-        v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (distance_per_step), (distance_per_step));
-        v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (-distance_per_step), (-distance_per_step));
-        v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (-distance_per_step), (distance_per_step));
-      end if;
-  
-  
-       if move_choice = '+' or move_choice='O' then    
-        v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, 0, (-distance_per_step));
-        v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, 0, (distance_per_step));
-        v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (-distance_per_step), 0);
-        v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (distance_per_step), 0);
-      end if;
-  
-    end loop;
+        if move_step = 'X' or move_step='O' then    
+          v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (distance_per_step), (-distance_per_step), new_x, new_y);
+          v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (distance_per_step), (distance_per_step), new_x, new_y);
+          v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (-distance_per_step), (-distance_per_step), new_x, new_y);
+          v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (-distance_per_step), (distance_per_step), new_x, new_y);
+        end if;
+        --v_positions := v_positions || '[DEBUG2:' || move_step || new_x || ',' || new_y || ']**' || chr(13);
+      end loop; -- for c    
+    end loop; -- move_choice
   
     -- For each move combination (: - separated)
     -- For each direction:

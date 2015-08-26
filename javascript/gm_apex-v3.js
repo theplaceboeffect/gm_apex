@@ -83,7 +83,7 @@ function InitializeBoardDragAndDrop()
                     accepts: function (piece, target, source, sibling) {
                         
                         // Do we really need to run this every time!
-                        $("#"+piece.getAttribute('id')).attr('positions').split(':').forEach(function(item) { if (item != '') { console.log("Position " + item + " OK!"); $("#" + item).addClass('good-location') }});
+                        $("#"+piece.getAttribute('id')).attr('positions').split(':').forEach(function(item) { if (item != '') { $("#" + item).addClass('good-location') }});
 
                         $('.board-location').removeClass('bad-location');
                         if ($("#"+target.getAttribute('id')).hasClass('good-location') == false) {
@@ -122,11 +122,75 @@ function InitializeBoardDragAndDrop()
     });
     d.on('over', function(piece,container,source) {
             console.log("ON OVER:(" + board.xpos(piece) + "," + board.ypos(piece) + ") container (" + board.xpos(container) + "," + board.ypos(container) + ")" );
-            $("#"+piece.getAttribute('id')).attr('positions').split(':').forEach(function(item) { if (item != '') { console.log("Position " + item + " OK!"); $("#" + item).addClass('good-location')  } })    })
+            $("#"+piece.getAttribute('id')).attr('positions').split(':').forEach(function(item) { if (item != '') {  $("#" + item).addClass('good-location')  } })   
+    });
         ;
     d.on('cancel', function(piece,container) {
-        console.log("ON CANCLE:(" + board.xpos(piece) + "," + board.ypos(piece) + ") container (" + board.xpos(container) + "," + board.ypos(container) + ")" );
+        console.log("ON CANCEL:(" + board.xpos(piece) + "," + board.ypos(piece) + ") container (" + board.xpos(container) + "," + board.ypos(container) + ")" );
         board.reset_board_location_highlights(); // reset borders 
 
-    })
+    });
+    
+    d.on('drag', function(piece,source) {
+        t=new Opentip("#"+piece.getAttribute('id'), "Optional content", "Optional title");
+        t.show();
+    });
+         
+    
+}
+
+
+/***************************************************************
+function InitializeBoardDragAndDrop()
+{
+    dragularState = dragula(Array.prototype.slice.call(document.querySelectorAll('.board-location')))
+                        .on('drop', function(e1) {OnMovePiece(e1);})
+                        .on('over', function(e1) {console.log(' on over ...');})
+    ;
+}
+***************************************************************/
+/***************************************************************/
+function OnMovePiece(e1)
+{
+    var piece_moved = $(e1).attr("id").replace('piece-','');
+    var new_x = $(e1).parent().attr("id").split("-")[1];
+    var new_y = $(e1).parent().attr("id").split("-")[2];
+ 
+    
+    console.log('piece_moved:' + piece_moved + " to " + new_x + "," + new_y);
+    
+    $s("P1_PIECE_MOVED", piece_moved);
+    $s("P1_NEW_X", new_x);
+    $s("P1_NEW_Y", new_y);
+    
+    $s("P1_TRIGGER_MOVE", $v("P1_TRIGGER_MOVE")+1);
+    $("#GAME_BOARD").trigger('apexrefresh');
+}
+/***************************************************************/
+last_ping=new Date().getTime();
+PING_INTERVAL = 300 * 1000;
+last_move_count = 0;
+
+function RefreshEverything()
+{
+        console.log('Refreshing ...');
+        var ajax_call = new htmldb_Get(null,$v('pFlowId'), 'APPLICATION_PROCESS=PING',0);
+        ajax_call.get();
+        $("P1_LASTMOVE_COUNT").trigger('apexrefresh');
+        $("#GM_CHAT").trigger('apexrefresh');
+        $("#GAME_BOARD").trigger('apexrefresh');
+        $("#CURRENT_USERS").trigger('apexrefresh');
+        $("#GM_STATE").trigger('apexrefresh');   
+        $("#P1_LASTMOVE_COUNT").trigger('apexrefresh');
+
+}
+function PingServer()
+{
+    var now=new Date().getTime();
+    console.log("DIFF:" + (now - last_ping));
+
+    if (now - last_ping > PING_INTERVAL) {
+        RefreshEverything()
+        last_ping=new Date().getTime();
+    }
 }
