@@ -1,6 +1,6 @@
 alter session set current_schema=apex_gm;
 
-select gm_game_lib.gm_calc_valid_squares(3, 101) from dual;
+--select gm_game_lib.gm_calc_valid_squares(3, 101) from dual;
 
 create or replace package GM_GAME_LIB as
 
@@ -121,25 +121,41 @@ create or replace package body GM_GAME_LIB as
         --v_positions := v_positions || '[DEBUG1:' || move_step || new_x || ',' || new_y || ']**' || chr(13);
 
         if move_step = '^' or move_step = '+' or move_step='O'then        
+      new_x :=null;
+      new_y :=null;
           v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, 0, distance_per_step, new_x, new_y);
         end if;
     
         if move_step = 'v' or move_step = '+' or move_step='O'then        
+      new_x :=null;
+      new_y :=null;
           v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, 0, (-distance_per_step), new_x, new_y);
         end if;
   
         if move_step = '<' or move_step = '+' or move_step='O'then        
+      new_x :=null;
+      new_y :=null;
           v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (-distance_per_step), 0, new_x, new_y);
         end if;
   
         if move_step = '>' or move_step = '+' or move_step='O'then        
+      new_x :=null;
+      new_y :=null;
           v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (distance_per_step), 0, new_x, new_y);
         end if;
   
         if move_step = 'X' or move_step='O' then    
+      new_x :=null;
+      new_y :=null;
           v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (distance_per_step), (-distance_per_step), new_x, new_y);
+      new_x :=null;
+      new_y :=null;
           v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (distance_per_step), (distance_per_step), new_x, new_y);
+      new_x :=null;
+      new_y :=null;
           v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (-distance_per_step), (-distance_per_step), new_x, new_y);
+      new_x :=null;
+      new_y :=null;
           v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (-distance_per_step), (distance_per_step), new_x, new_y);
         end if;
         --v_positions := v_positions || '[DEBUG2:' || move_step || new_x || ',' || new_y || ']**' || chr(13);
