@@ -3,14 +3,153 @@ alter session set current_schema=apex_gm;
 
 create or replace package GM_GAME_LIB as
 
+  function gm_move_in_direction( p_piece gm_board_pieces%rowtype, p_max_distance_per_move number,p_x_steps number, p_y_steps number) return nvarchar2;
+  function gm_calc_valid_squares(p_game_id number, p_piece_id number) return varchar2;
+  function format_piece(game_id number, piece_id number, player_number number, piece_name nvarchar2, svg_url nvarchar2, x_pos number, y_pos number) return nvarchar2;
+  
+
   function new_game(p_player1 nvarchar2, p_player2 nvarchar2) return number;
   procedure output_board_config(p_game_id number);
-  procedure move_piece(p_game_id number,  p_piece_id number, p_x_pos number, p_y_pos number);
+  procedure move_piece(p_game_id number, p_piece_id number, p_x_pos number, p_y_pos number);
 
 
 end GM_GAME_LIB;
 /
 create or replace package body GM_GAME_LIB as
+  function gm_move_in_direction( p_piece gm_board_pieces%rowtype, p_max_distance_per_move number,p_x_steps number, p_y_steps number) return nvarchar2
+  as
+    new_position varchar2(10);
+    return_positions varchar2(1000);
+    new_xpos number;
+    new_ypos number;
+    player_occupying_square number;
+    n number;
+    stop_moving boolean;
+  begin
+    
+  
+    stop_moving := false;
+    for step in 1..p_max_distance_per_move loop
+      new_xpos := p_piece.x_pos + step * p_x_steps;
+      new_ypos := p_piece.y_pos + step * p_y_steps;
+      if not stop_moving then
+        -- if out of bounds then don't move further
+        if new_xpos < 1 or new_xpos > 8 or new_ypos < 1 or new_ypos > 8 then
+          new_position:='';
+        else
+          select count(*) into n from gm_board_pieces where game_id=p_piece.game_id and x_pos=new_xpos and y_pos=new_ypos;
+          -- occupied
+          if  (n <> 0) then
+            select player into n from gm_board_pieces where game_id=p_piece.game_id and x_pos=new_xpos and y_pos=new_ypos;
+            stop_moving := true;
+            -- occupied by another player's piece ** TODO: Check for capture direction **
+            if n <> p_piece.player then
+                new_position:= 'loc-' || new_xpos || '-' || new_ypos || ':';
+            else
+                new_position:='';
+            end if; 
+          else
+            -- not occupied.
+            new_position := 'loc-' || new_xpos || '-' || new_ypos || ':';    
+          end if; -- if occupied
+        end if; -- in bounds;
+        
+      end if; -- if not stop_moving
+      
+      return_positions := return_positions || new_position;
+    end loop; 
+  
+    return return_positions;
+  end gm_move_in_direction;
+
+  function gm_calc_valid_squares(p_game_id number, p_piece_id number) return varchar2
+  as
+  
+    v_piece gm_board_pieces%rowtype;
+    v_piece_definition gm_piece_types%rowtype;
+    v_positions varchar2(1000);
+    v_move_choices apex_application_global.vc_arr2;
+    move_choice varchar2(100);
+    new_x number;
+    new_y number;
+    y_direction number;
+    distance_per_step number;
+    step number;
+    max_distance_per_move number;
+    next_position varchar2(100);
+    stop_moving boolean;
+  begin
+  
+    select P.* into v_piece from gm_board_pieces P where P.piece_id = p_piece_id and P.game_id=p_game_id;
+    select PT.* into v_piece_definition from gm_piece_types PT where PT.piece_type_id = v_piece.piece_type_id and PT.game_id=p_game_id;
+    
+    -- Flip the y direction if the second player
+    if v_piece.player = 1 then y_direction := 1; else y_direction := -1 ;end if;
+    
+    -- Current position is also valid!
+    v_positions := 'loc-' || v_piece.x_pos || '-' || v_piece.y_pos || ':';
+    
+    v_move_choices := apex_util.string_to_table(v_piece_definition.directions_allowed,':');
+    for z in 1..v_move_choices.count loop
+      move_choice := v_move_choices(z);
+  
+      if v_piece_definition.n_steps_per_move = 0 then
+        max_distance_per_move := 8; --TODO: Replace with board size 
+      else
+        max_distance_per_move := v_piece_definition.n_steps_per_move;
+      end if;
+  
+      distance_per_step := (1 * y_direction);
+      -- CANNOT JUMP
+      if move_choice = '^' then        
+        v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, 0, distance_per_step);
+      end if;
+  
+      if move_choice = 'X' or move_choice='O' then    
+        v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (distance_per_step), (-distance_per_step));
+        v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (distance_per_step), (distance_per_step));
+        v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (-distance_per_step), (-distance_per_step));
+        v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (-distance_per_step), (distance_per_step));
+      end if;
+  
+  
+       if move_choice = '+' or move_choice='O' then    
+        v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, 0, (-distance_per_step));
+        v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, 0, (distance_per_step));
+        v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (-distance_per_step), 0);
+        v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (distance_per_step), 0);
+      end if;
+  
+    end loop;
+  
+    -- For each move combination (: - separated)
+    -- For each direction:
+    -- General piece
+  
+    return v_positions;
+  end gm_calc_valid_squares;
+
+  function format_piece(game_id number, piece_id number, player_number number, piece_name nvarchar2, svg_url nvarchar2, x_pos number, y_pos number) return nvarchar2 as
+  begin
+    if piece_id is null then 
+      return ' ';
+    else
+    --- Unicode
+    --return '<p id="piece-' || piece_id || '" player=' || player_number || ' xpos=1 ypos=' || y_pos || ' location="' || x_pos || '.' || y_pos || '" piece-name="' || piece_name  || '" class="game-piece">' || svg_url || '</p>';
+  
+    --- SVG images
+    return '<img id="piece-' || piece_id || '" player=' || player_number 
+                              || ' xpos=' || x_pos || ' ypos=' || y_pos || ' location="' || x_pos || '.' || y_pos 
+                              || '" piece-name="' || piece_name  
+                              || '" class="game-piece" type="image/svg+xml" src="' || svg_url 
+                              || '" positions="' || gm_calc_valid_squares(game_id, piece_id)
+                              || '"/>';
+  
+    --- Debugging
+    --return '[' || piece_id , piece_name ) || x_pos || ',' || y_pos || ']';
+    end if;
+  
+  end;
 
   procedure make_chess_board(p_game_id number) as
     v_y_pos number;
@@ -25,9 +164,9 @@ create or replace package body GM_GAME_LIB as
     loop
 
       insert into gm_board_states(game_id, y_pos, cell_1, cell_2, cell_3, cell_4, cell_5, cell_6, cell_7, cell_8) 
-                  values (p_game_id, (v_y_pos*2)+2,  0, 1, 0, 1, 0, 1, 0, 1);
+                          values (p_game_id, (v_y_pos*2)+2,  0, 1, 0, 1, 0, 1, 0, 1);
       insert into gm_board_states(game_id, y_pos, cell_1, cell_2, cell_3, cell_4, cell_5, cell_6, cell_7, cell_8) 
-                  values (p_game_id, (v_y_pos*2)+1,  1, 0, 1, 0, 1, 0, 1, 0);
+                          values (p_game_id, (v_y_pos*2)+1,  1, 0, 1, 0, 1, 0, 1, 0);
       
     end loop;
     
@@ -110,17 +249,41 @@ create or replace package body GM_GAME_LIB as
     
     return v_p_game_id;
   end new_game;
-  
-  procedure move_piece(p_game_id number,  p_piece_id number, p_x_pos number, p_y_pos number)
+-- exec gm_game_lib.move_piece(3,109,1,5);
+-- select * from gm_board_pieces where game_id = 3 and piece_id = 109;
+-- select * from gm_board_pieces where game_id = 3 and x_pos=1 and y_pos=5;
+-- select * from gm_board_pieces where status=0;
+/*
+select * from gm_board_pieces 
+   where game_id = p_game_id
+      and piece_id = p_piece_id
+      and x_pos=p_x_pos
+      and y_pos=p_y_pos
+      and player <> v_player;
+*/
+procedure move_piece(p_game_id number, p_piece_id number, p_x_pos number, p_y_pos number)
   as
     n_pieces number;
+    v_player number;
   begin
     --log_message('move_piece: [p_game_id:' || p_game_id || '][p_piece_id:' || p_piece_id || '][x: ' || p_x_pos || '][y: ' || p_y_pos || ']');
 
+    select player into v_player from gm_board_pieces where game_id = p_game_id and piece_id = p_piece_id;
+    
+    
+    update gm_board_pieces
+    set status = 0, x_pos = 0, y_pos = 0
+    where game_id = p_game_id
+      and x_pos=p_x_pos
+      and y_pos=p_y_pos
+      and player <> v_player;
+      -- move piece if not occupied
+      --and not exists (select * from gm_board_pieces where game_id = p_game_id and x_pos=p_x_pos and y_pos=p_y_pos and player <> v_player);
     update gm_board_pieces
     set x_pos=p_x_pos, y_pos=p_y_pos
     where game_id = p_game_id
       and piece_id = p_piece_id
+      -- move piece if not occupied
       and not exists (select * from gm_board_pieces where game_id = p_game_id and x_pos=p_x_pos and y_pos=p_y_pos);
 
     update gm_games set lastmove_count=lastmove_count+1 where game_id = p_game_id;
