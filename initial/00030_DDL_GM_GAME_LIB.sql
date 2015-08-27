@@ -1,11 +1,11 @@
 alter session set current_schema=apex_gm;
 
---select gm_game_lib.gm_calc_valid_squares(3, 101) from dual;
+--select gm_game_lib.calc_valid_squares(3, 101) from dual;
 
 create or replace package GM_GAME_LIB as
 
-  function gm_move_in_direction( p_piece gm_board_pieces%rowtype, p_max_distance_per_move number,p_x_steps number, p_y_steps number, new_xpos in out number, new_ypos in out number) return nvarchar2;
-  function gm_calc_valid_squares(p_game_id number, p_piece_id number) return varchar2;
+  function move_in_direction( p_piece gm_board_pieces%rowtype, p_piece_type gm_piece_types%rowtype, p_max_distance_per_move number,p_x_steps number, p_y_steps number, new_xpos in out number, new_ypos in out number, ended_on out nvarchar2) return nvarchar2;
+  function calc_valid_squares(p_game_id number, p_piece_id number) return varchar2;
   function format_piece(game_id number, piece_id number, player_number number, piece_name nvarchar2, svg_url nvarchar2, x_pos number, y_pos number) return nvarchar2;
 
   function new_game(p_player1 nvarchar2, p_player2 nvarchar2) return number;
@@ -15,7 +15,9 @@ create or replace package GM_GAME_LIB as
 end GM_GAME_LIB;
 /
 create or replace package body GM_GAME_LIB as
-  function gm_move_in_direction( p_piece gm_board_pieces%rowtype, p_max_distance_per_move number,p_x_steps number, p_y_steps number, new_xpos in out number, new_ypos in out number) return nvarchar2
+
+  -- *****************************************************************************
+  function move_in_direction( p_piece gm_board_pieces%rowtype, p_piece_type gm_piece_types%rowtype, p_max_distance_per_move number,p_x_steps number, p_y_steps number, new_xpos in out number, new_ypos in out number, ended_on out nvarchar2) return nvarchar2
   as
     new_position varchar2(100);
     return_positions varchar2(2000);
@@ -25,19 +27,23 @@ create or replace package body GM_GAME_LIB as
     n number;
     stop_moving boolean;
   begin
-    
-  
     stop_moving := false;
     for step in 1..p_max_distance_per_move loop
       --return_positions := return_positions || '{' || new_xpos || ',' || new_ypos || '}';
-      new_xpos := nvl(new_xpos, p_piece.x_pos) + step * p_x_steps;
-      new_ypos := nvl(new_ypos, p_piece.y_pos) + step * p_y_steps;
+      if p_piece_type.can_jump = 1 then
+        new_xpos := nvl(new_xpos, p_piece.x_pos) + step * p_x_steps;
+        new_ypos := nvl(new_ypos, p_piece.y_pos) + step * p_y_steps;
+      else
+        new_xpos := p_piece.x_pos + step * p_x_steps;
+        new_ypos := p_piece.y_pos + step * p_y_steps;
+      end if;
       --return_positions := return_positions || '{' || new_xpos || ',' || new_ypos || ' step:' || step || ' ' || p_x_steps || ',' || p_y_steps || '}';
       
       if not stop_moving then
         -- if out of bounds then don't move further
         if new_xpos < 1 or new_xpos > 8 or new_ypos < 1 or new_ypos > 8 then
           new_position:='';
+          ended_on:='edge';
         else
           select count(*) into n from gm_board_pieces where game_id=p_piece.game_id and x_pos=new_xpos and y_pos=new_ypos;
           -- occupied
@@ -47,28 +53,37 @@ create or replace package body GM_GAME_LIB as
             -- occupied by another player's piece ** TODO: Check for capture direction **
             if n <> p_piece.player then
                 new_position:= 'loc-' || new_xpos || '-' || new_ypos || ':';
+                ended_on:='nme';
             else
                 new_position:='';
+                ended_on:='own';
             end if; 
           else
+            ended_on:='';
             -- not occupied.
-            new_position := 'loc-' || new_xpos || '-' || new_ypos || ':';    
+            new_position := ':loc-' || new_xpos || '-' || new_ypos;    
           end if; -- if occupied
         end if; -- in bounds;
         
       end if; -- if not stop_moving
       
-      return_positions := return_positions || new_position;
+      if p_piece_type.can_jump = 1 then
+        --return_positions := return_positions || new_position;
+        null;
+      else
+        return_positions := return_positions || new_position;
+      end if;
     end loop; 
   
     return return_positions;
-  end gm_move_in_direction;
+  end move_in_direction;
 
-  function gm_calc_valid_squares(p_game_id number, p_piece_id number) return varchar2
+  /*********************************************************************************************************************/
+  function calc_valid_squares(p_game_id number, p_piece_id number) return varchar2
   as
   
     v_piece gm_board_pieces%rowtype;
-    v_piece_definition gm_piece_types%rowtype;
+    v_piece_type gm_piece_types%rowtype;
     v_positions varchar2(4000);
     v_move_choices apex_application_global.vc_arr2;
     move_choice varchar2(100);
@@ -82,6 +97,7 @@ create or replace package body GM_GAME_LIB as
     max_distance_per_move number;
     next_position varchar2(100);
     stop_moving boolean;
+    ended_on varchar2(4);
   begin
   
     select P.* into v_piece from gm_board_pieces P where P.piece_id = p_piece_id and P.game_id=p_game_id;
@@ -90,76 +106,73 @@ create or replace package body GM_GAME_LIB as
       return '';
     end if;
     
-    select PT.* into v_piece_definition from gm_piece_types PT where PT.piece_type_id = v_piece.piece_type_id and PT.game_id=p_game_id;
+    select PT.* into v_piece_type from gm_piece_types PT where PT.piece_type_id = v_piece.piece_type_id and PT.game_id=p_game_id;
     
     -- Flip the y direction if the second player
     if v_piece.player = 1 then y_direction := 1; else y_direction := -1 ;end if;
     
     
     -- define the furthest a piece can move.
-    if v_piece_definition.n_steps_per_move = 0 then
+    if v_piece_type.n_steps_per_move = 0 then
       max_distance_per_move := 8; --TODO: Replace with board size 
     else
-      max_distance_per_move := v_piece_definition.n_steps_per_move;
+      max_distance_per_move := v_piece_type.n_steps_per_move;
     end if;
 
     -- define how many steps (currently 1) that a piece takes per move
     distance_per_step := (1 * y_direction);
 
     -- Current position is also valid!
-    v_positions := 'loc-' || v_piece.x_pos || '-' || v_piece.y_pos || ':';
+    v_positions := 'loc-' || v_piece.x_pos || '-' || v_piece.y_pos;
     
-    v_move_choices := apex_util.string_to_table(v_piece_definition.directions_allowed,':');
+    v_move_choices := apex_util.string_to_table(v_piece_type.directions_allowed,':');
+    dbms_output.put_line('---> Number of choices: ' || v_move_choices.count || ' from "' || v_piece_type.directions_allowed || '"' );
     for z in 1..v_move_choices.count loop
       move_choice := v_move_choices(z);
-      --v_positions:=v_positions||'**[DEBUG:move_choice' || move_choice || ']';
-      new_x :=null;
-      new_y :=null;
-      
+
+      new_x := null;
+      new_y := null;
+      dbms_output.put_line('');
+      dbms_output.put_line('[DEBUG0: move_choice=' || move_choice || ']**');
       for c in 1..length(move_choice) loop
         move_step := substr(move_choice,c,1);
-        --v_positions := v_positions || '[DEBUG1:' || move_step || new_x || ',' || new_y || ']**' || chr(13);
-
-        if move_step = '^' or move_step = '+' or move_step='O'then        
-      new_x :=null;
-      new_y :=null;
-          v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, 0, distance_per_step, new_x, new_y);
+        dbms_output.put_line('[DEBUG1:move_step=' || move_step || new_x || ',' || new_y || ']**');
+        
+        if move_step = '^' or move_step = '+' or move_step='O'then
+          dbms_output.put_line('[DEBUG1:move_step=' || move_step || new_x || ',' || new_y || ']**');
+          v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, 0, distance_per_step, new_x, new_y, ended_on);
         end if;
     
         if move_step = 'v' or move_step = '+' or move_step='O'then        
-      new_x :=null;
-      new_y :=null;
-          v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, 0, (-distance_per_step), new_x, new_y);
+          dbms_output.put_line('[DEBUG1:move_step=' || move_step || new_x || ',' || new_y || ']**');
+          v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, 0, (-distance_per_step), new_x, new_y, ended_on);
         end if;
   
         if move_step = '<' or move_step = '+' or move_step='O'then        
-      new_x :=null;
-      new_y :=null;
-          v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (-distance_per_step), 0, new_x, new_y);
+          dbms_output.put_line('[DEBUG1:move_step=' || move_step || new_x || ',' || new_y || ']**');
+          v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), 0, new_x, new_y, ended_on);
         end if;
   
         if move_step = '>' or move_step = '+' or move_step='O'then        
-      new_x :=null;
-      new_y :=null;
-          v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (distance_per_step), 0, new_x, new_y);
+          dbms_output.put_line('[DEBUG1:move_step=' || move_step || new_x || ',' || new_y || ']**');
+          v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (distance_per_step), 0, new_x, new_y, ended_on);
         end if;
   
         if move_step = 'X' or move_step='O' then    
-      new_x :=null;
-      new_y :=null;
-          v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (distance_per_step), (-distance_per_step), new_x, new_y);
-      new_x :=null;
-      new_y :=null;
-          v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (distance_per_step), (distance_per_step), new_x, new_y);
-      new_x :=null;
-      new_y :=null;
-          v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (-distance_per_step), (-distance_per_step), new_x, new_y);
-      new_x :=null;
-      new_y :=null;
-          v_positions := v_positions || gm_move_in_direction(v_piece, max_distance_per_move, (-distance_per_step), (distance_per_step), new_x, new_y);
+          
+          dbms_output.put_line('DEBUG1:move_step=' || move_step || new_x || ',' || new_y);
+                  
+          v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (distance_per_step), (-distance_per_step), new_x, new_y, ended_on);
+          v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (distance_per_step), (distance_per_step), new_x, new_y, ended_on);
+          v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), (-distance_per_step), new_x, new_y, ended_on);
+          v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), (distance_per_step), new_x, new_y, ended_on);
         end if;
-        --v_positions := v_positions || '[DEBUG2:' || move_step || new_x || ',' || new_y || ']**' || chr(13);
-      end loop; -- for c    
+      end loop; -- for c
+      dbms_output.put_line('DEBUG2:ended_on=' || ended_on);      
+      if v_piece_type.can_jump = 1 and (ended_on = 'nme' or ended_on is null) then
+        v_positions := v_positions || ':loc-' || new_x || '-' || new_y;
+      end if;
+      dbms_output.put_line('DEBUG3:v_positions=' || v_positions);
     end loop; -- move_choice
   
     -- For each move combination (: - separated)
@@ -167,8 +180,9 @@ create or replace package body GM_GAME_LIB as
     -- General piece
   
     return v_positions;
-  end gm_calc_valid_squares;
-
+  end calc_valid_squares;
+  
+  /*********************************************************************************************************************/
   function format_piece(game_id number, piece_id number, player_number number, piece_name nvarchar2, svg_url nvarchar2, x_pos number, y_pos number) return nvarchar2 as
   begin
     if piece_id is null then 
@@ -182,7 +196,7 @@ create or replace package body GM_GAME_LIB as
                               || ' xpos=' || x_pos || ' ypos=' || y_pos || ' location="' || x_pos || '.' || y_pos 
                               || '" piece-name="' || piece_name  
                               || '" class="game-piece" type="image/svg+xml" src="' || svg_url 
-                              || '" positions="' || gm_calc_valid_squares(game_id, piece_id)
+                              || '" positions="' || calc_valid_squares(game_id, piece_id)
                               || '"/>';
   
     --- Debugging
@@ -191,9 +205,12 @@ create or replace package body GM_GAME_LIB as
   
   end;
 
+  /*********************************************************************************************************************/
   procedure make_chess_board(p_game_id number) as
     v_y_pos number;
     v_board_id number;
+    CAN_JUMP constant number := 1;
+    CANNOT_JUMP constant number := 0;
   begin
 
     -- Initialize the game board.
@@ -220,12 +237,23 @@ create or replace package body GM_GAME_LIB as
     insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 6, 'king', 1, 'A', 'https://upload.wikimedia.org/wikipedia/commons/7/7e/Chess_kgt45.svg');
     */
     --/* Local SVG
-    insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 1, 'pawn',   1, '^'                                ,V('APP_IMAGES') || 'pawn.svg');
-    insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 2, 'bishop', 0, 'X'                                ,V('APP_IMAGES')||'bishop.svg');
-    insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 3, 'knight', 1, '^^>:^^<:vv<:vv>:>^^:<^^:>vv:<vv'  ,V('APP_IMAGES')||'knight.svg');
-    insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 4, 'rook',   0, '+'                                ,V('APP_IMAGES')||'rook.svg');
-    insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 5, 'queen',  0, 'O'                                ,V('APP_IMAGES')||'queen.svg');
-    insert into gm_piece_types(game_id,piece_type_id, piece_name, n_steps_per_move, directions_allowed, svg_url) values(p_game_id, 6, 'king',   1, 'O'                                ,V('APP_IMAGES')||'king.svg');
+    insert into gm_piece_types(game_id,piece_type_id, piece_name, can_jump, n_steps_per_move, directions_allowed, svg_url) 
+                         values(p_game_id, 1, 'pawn', CANNOT_JUMP,  1, '^', V('APP_IMAGES') || 'pawn.svg');
+                         
+    insert into gm_piece_types(game_id,piece_type_id, piece_name, can_jump, n_steps_per_move, directions_allowed, svg_url)
+                         values(p_game_id, 2, 'bishop', CANNOT_JUMP, 0, 'X', V('APP_IMAGES')||'bishop.svg');
+                         
+    insert into gm_piece_types(game_id,piece_type_id, piece_name, can_jump, n_steps_per_move, directions_allowed, svg_url) 
+                         values(p_game_id, 3, 'knight', CAN_JUMP, 1, '^^>:^^<:vv<:vv>:>>^:>>v:<<^:<<v'  ,V('APP_IMAGES')||'knight.svg'); -- 
+                         
+    insert into gm_piece_types(game_id,piece_type_id, piece_name, can_jump, n_steps_per_move, directions_allowed, svg_url) 
+                        values(p_game_id, 4, 'rook',  CANNOT_JUMP, 0, '+', V('APP_IMAGES')||'rook.svg');
+                        
+    insert into gm_piece_types(game_id,piece_type_id, piece_name, can_jump, n_steps_per_move, directions_allowed, svg_url) 
+                        values(p_game_id, 5, 'queen', CANNOT_JUMP, 0, 'O', V('APP_IMAGES')||'queen.svg');
+                        
+    insert into gm_piece_types(game_id,piece_type_id, piece_name, can_jump, n_steps_per_move, directions_allowed, svg_url) 
+                        values(p_game_id, 6, 'king', CANNOT_JUMP, 1, 'O', V('APP_IMAGES')||'king.svg');
     --*/
     /*
     -- Unicode
