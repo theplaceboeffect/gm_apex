@@ -34,7 +34,7 @@ create table gm_boards
 create table gm_board_states
 (
   game_id number,
-  y_pos number,
+  ypos number,
   cell_1 number,
   cell_2 number,
   cell_3 number,
@@ -47,7 +47,7 @@ create table gm_board_states
   cell_10 number,
   cell_11 number,
   cell_12 number,
-  constraint board_id_pk primary key (game_id, y_pos)
+  constraint board_id_pk primary key (game_id, ypos)
 
 );
 /
@@ -69,8 +69,8 @@ create table gm_board_pieces
   game_id number,
   piece_type_id number,
   piece_id number,
-  x_pos number,
-  y_pos number,
+  xpos number,
+  ypos number,
   player varchar2(50),
   status number
 );
