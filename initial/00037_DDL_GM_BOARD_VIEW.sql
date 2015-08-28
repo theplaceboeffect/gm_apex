@@ -59,3 +59,23 @@ CREATE OR REPLACE FORCE VIEW gm_board_view as
     left join board P on S.game_id = P.game_id and S.ypos = P.ypos and S.game_id=P.game_id
     ;
 /
+
+
+create or replace view gm_board_css as
+  select css 
+  from (
+    -- start CSS
+    select '<style type="text/css">' css, 0 display_order from dual
+    union all
+    --Other CSS
+    select css_selector || ' ' || css_definition board_css, css_order display_order
+    from gm_gamedef_css where gamedef_code=(select board_type from gm_boards where game_id=v('P1_GAME_ID'))
+    union all
+    -- end CSS
+    select '</style>' css, 100000 display_order from dual
+    
+  )
+  order by display_order
+  ;
+  
+  select board_type from gm_boards where game_id=v('P1_GAME_ID');

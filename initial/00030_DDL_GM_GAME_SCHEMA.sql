@@ -35,18 +35,18 @@ create table gm_board_states
 (
   game_id number,
   ypos number,
-  cell_1 number,
-  cell_2 number,
-  cell_3 number,
-  cell_4 number,
-  cell_5 number,
-  cell_6 number,
-  cell_7 number,
-  cell_8 number,
-  cell_9 number,
-  cell_10 number,
-  cell_11 number,
-  cell_12 number,
+  cell_1 varchar2(11),
+  cell_2 varchar2(11),
+  cell_3 varchar2(11),
+  cell_4 varchar2(11),
+  cell_5 varchar2(11),
+  cell_6 varchar2(11),
+  cell_7 varchar2(11),
+  cell_8 varchar2(11),
+  cell_9 varchar2(11),
+  cell_10 varchar2(11),
+  cell_11 varchar2(11),
+  cell_12 varchar2(11),
   constraint board_id_pk primary key (game_id, ypos)
 
 );
@@ -54,7 +54,7 @@ create table gm_board_states
 create table gm_piece_types
 (
   game_id number,
-  piece_type_id number,
+  piece_type_id varchar2(20),
   piece_name varchar2(50),
   n_steps_per_move number,
   can_jump number,
@@ -67,7 +67,7 @@ create sequence gm_piece_types_seq;
 create table gm_board_pieces
 (
   game_id number,
-  piece_type_id number,
+  piece_type_id varchar2(20),
   piece_id number,
   xpos number,
   ypos number,

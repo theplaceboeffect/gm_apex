@@ -34,3 +34,12 @@ exec  GM_GenerateMoveTest(1,103,4,6);
 exec  GM_GenerateMoveTest(1,104,4,6);
 exec  GM_GenerateMoveTest(1,105,3,7);
 exec  GM_GenerateMoveTest(1,109,4,3);
+/
+
+declare x varchar2(1000); 
+begin
+  select gm_game_lib.calc_valid_squares(2, 109)  into x from dual;
+end;
+/
+
+select * from gm_chat;
