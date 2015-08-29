@@ -267,17 +267,13 @@ create or replace package body GM_GAME_LIB as
     insert into gm_games(game_id,   player1,  player2,  gamestart_timestamp,  lastmove_timestamp, lastmove_count) 
                   values(v_game_id, p_player1, p_player2, sysdate, sysdate, 0);
     
-    if v('P1_GAME_TYPE') = 'FISHER' then 
+    if p_game_type = 'FISHER' then 
       gm_gamedef_lib.create_board(v_game_id, p_fisher_game);
     else
       gm_gamedef_lib.create_board(v_game_id, p_game_type);
     end if;
     
-    APEX_UTIL.SET_SESSION_STATE('P1_GAME_ID', v_game_id);
-    
-    log_message('Created new game ' || v_game_id);
-    --gm_gamedef_lib.create_board(v_p_game_id, 'CHESS');
-    --gm_gamedef_lib.create_board(v_p_game_id, 'CHECKERS');     
+    log_message('Created new game ' || v_game_id || ': ' || p_game_type || ' ' || p_fisher_game);
     return v_game_id;
   end new_game;
 
