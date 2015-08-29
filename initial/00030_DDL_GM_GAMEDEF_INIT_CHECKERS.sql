@@ -59,7 +59,7 @@ end;
     insert into gm_gamedef_pieces(gamedef_code, piece_type_code, piece_id, xpos, ypos, player, status) values('CHECKERS','MAN',110,1,2,1,1);
     insert into gm_gamedef_pieces(gamedef_code, piece_type_code, piece_id, xpos, ypos, player, status) values('CHECKERS','MAN',112,3,2,1,1);
     insert into gm_gamedef_pieces(gamedef_code, piece_type_code, piece_id, xpos, ypos, player, status) values('CHECKERS','MAN',114,5,2,1,1);
-    insert into gm_gamedef_pieces(gamedef_code, piece_type_code, piece_id, xpos, ypos, player, status) values('CHECKERS','MAN',116,7,2,1,1);
+    insert into gm_gamedef_pieces(gamedef_code, piece_type_code, piece_id, xpos, ypos, player, status) values('CHECKERS','KING',116,7,2,1,1);
     
     -- Place black pieces
     insert into gm_gamedef_pieces(gamedef_code, piece_type_code, piece_id, xpos, ypos, player, status) values('CHECKERS','MAN',201,1,8,2,1);
@@ -70,7 +70,7 @@ end;
     insert into gm_gamedef_pieces(gamedef_code, piece_type_code, piece_id, xpos, ypos, player, status) values('CHECKERS','MAN',209,2,7,2,1);
     insert into gm_gamedef_pieces(gamedef_code, piece_type_code, piece_id, xpos, ypos, player, status) values('CHECKERS','MAN',211,4,7,2,1);
     insert into gm_gamedef_pieces(gamedef_code, piece_type_code, piece_id, xpos, ypos, player, status) values('CHECKERS','MAN',213,6,7,2,1);
-    insert into gm_gamedef_pieces(gamedef_code, piece_type_code, piece_id, xpos, ypos, player, status) values('CHECKERS','MAN',215,8,7,2,1);
+    insert into gm_gamedef_pieces(gamedef_code, piece_type_code, piece_id, xpos, ypos, player, status) values('CHECKERS','KING',215,8,7,2,1);
 
 -- define CSS
 

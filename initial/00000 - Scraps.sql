@@ -18,3 +18,13 @@ begin
     return 'loc-' || xpos || '-' || ypos || ':';
   end if;
 end;
+
+---------------------------------------------------------------
+declare
+    cursor css_cursor is select css from gm_board_css;
+begin
+    for css in css_cursor loop
+        htp.p(css.css);
+    end loop;
+end;
+----------------------------------------------------------

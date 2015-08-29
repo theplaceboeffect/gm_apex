@@ -158,6 +158,16 @@ create or replace package body GM_GAME_LIB as
           v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (distance_per_step), 0, new_x, new_y, ended_on);
         end if;
   
+        if move_step = '\' or move_step = '+' or move_step='O'then        
+          dbms_output.put_line('[DEBUG1:move_step=' || move_step || new_x || ',' || new_y || ']**');
+          v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (distance_per_step), (distance_per_step), new_x, new_y, ended_on);
+        end if;
+
+        if move_step = '/' or move_step = '+' or move_step='O'then        
+          dbms_output.put_line('[DEBUG1:move_step=' || move_step || new_x || ',' || new_y || ']**');
+          v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), (distance_per_step), new_x, new_y, ended_on);
+        end if;
+
         if move_step = 'X' or move_step='O' then    
           
           dbms_output.put_line('DEBUG1:move_step=' || move_step || new_x || ',' || new_y);

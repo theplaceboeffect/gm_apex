@@ -62,7 +62,7 @@ CREATE OR REPLACE FORCE VIEW gm_board_view as
 
 
 create or replace view gm_board_css as
-  select css 
+  select css, display_order 
   from (
     -- start CSS
     select '<style type="text/css">' css, 0 display_order from dual
@@ -77,5 +77,3 @@ create or replace view gm_board_css as
   )
   order by display_order
   ;
-  
-  select board_type from gm_boards where game_id=v('P1_GAME_ID');
