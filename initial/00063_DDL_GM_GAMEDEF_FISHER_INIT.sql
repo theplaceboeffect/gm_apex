@@ -7,6 +7,7 @@ Moves from: http://koti.mbnet.fi/villes/php/fischerandom.php
 
 //------------------------------------------------------------------------------------------
 /
+/*
 delete from gm_gamedef_pieces where gamedef_code LIKE 'FISH%';
 delete from gm_gamedef_piece_types where gamedef_code LIKE 'FISH%';
 delete from gm_gamedef_css where gamedef_code LIKE 'FISH%';
@@ -14,11 +15,17 @@ delete from gm_gamedef_layout where gamedef_code LIKE 'FISH%';
 delete from gm_gamedef_squaretypes where gamedef_code LIKE 'FISH%';
 delete from gm_gamedef_boards where gamedef_code LIKE 'FISH%';
 
+drop table gm_fisher_positions;
+*/
+
 create table GM_FISHER_POSITIONS (
   fisher_game_id number,
   starting_position varchar2(8),
   constraint fisher_game_pk primary key(fisher_game_id)
 );
+
+/
+
 create or replace procedure populate_fisher_table as 
 begin
   insert into GM_FISHER_POSITIONS(fisher_game_id, starting_position) values(0,'BBQNNRKR');
@@ -982,7 +989,7 @@ begin
   insert into GM_FISHER_POSITIONS(fisher_game_id, starting_position) values(958,'RKRNNBBQ');
   insert into GM_FISHER_POSITIONS(fisher_game_id, starting_position) values(959,'RKRNNQBB');
 end;
-commit;
+/
 //------------------------------------------------------------------------------------------
 /
 create or replace procedure populate_fisher_games 
@@ -996,13 +1003,13 @@ as
 
 begin
     for game in fisher_games loop
-      fisher_game_code := 'FISH_' || game.fisher_game_id;
+      fisher_game_code := 'FISH_' || lpad(game.fisher_game_id,3,'0');
       
       select count(*) into i from gm_gamedef_boards where gamedef_code=fisher_game_code;
       if i=0 then
-        dbms_output.put_line('Fisher Game ' || game.fisher_game_id || ' - ' || game.starting_position);
+        dbms_output.put_line('Fisher Game ' || lpad(game.fisher_game_id,3,'0') || ' - ' || game.starting_position);
         -- define 8x8 board.
-        insert into gm_gamedef_boards(gamedef_code, gamedef_name, max_rows, max_cols) values(fisher_game_code, 'Fisher Game ID=' || game.fisher_game_id, 8, 8);
+        insert into gm_gamedef_boards(gamedef_code, gamedef_name, max_rows, max_cols) values(fisher_game_code, 'Fisher Game ID=' || lpad(game.fisher_game_id,3,'0') || ':' || game.starting_position, 8, 8);
         
         -- define square types.
         insert into gm_gamedef_squaretypes(gamedef_code, square_type_code, square_type_name) values( fisher_game_code, 'BLACK','Black square');
@@ -1050,7 +1057,7 @@ begin
             
         -- Place black pieces
         for i in 1 .. length(game.starting_position) loop
-            insert into gm_gamedef_pieces(gamedef_code, piece_type_code, piece_id, xpos, ypos, player, status) values(fisher_game_code,decode(substr(game.starting_position,i,1),'B','BISHOP','Q','QUEEN','N','KNIGHT','R','ROOK','K','KING'),200+i,i,8,1,1);
+            insert into gm_gamedef_pieces(gamedef_code, piece_type_code, piece_id, xpos, ypos, player, status) values(fisher_game_code,decode(substr(game.starting_position,i,1),'B','BISHOP','Q','QUEEN','N','KNIGHT','R','ROOK','K','KING'),200+i,i,8,2,1);
         end loop;
         insert into gm_gamedef_pieces(gamedef_code, piece_type_code, piece_id, xpos, ypos, player, status) values(fisher_game_code,'PAWN',209,1,7,2,1);
         insert into gm_gamedef_pieces(gamedef_code, piece_type_code, piece_id, xpos, ypos, player, status) values(fisher_game_code,'PAWN',210,2,7,2,1);
@@ -1063,8 +1070,8 @@ begin
         
         -- define CSS
         
-        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[type=CHESS-BLACK]','{ background-color: darkslategray;}', 1);
-        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[type=CHESS-WHITE]','{ background-color: lightgray;}', 1);
+        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[type=' || fisher_game_code || '-BLACK]','{ background-color: darkslategray;}', 1);
+        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[type=' || fisher_game_code || '-WHITE]','{ background-color: lightgray;}', 1);
         insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '.bad-location',' {background-color: pink; border: 2px solid red;}', 1000);
         insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '.good-location','{background-color: lightgreen; border: 2px solid darkgreen;}',1000);
         insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '.capture-location','{background-color: sandybrown;border: 2px solid saddlebrown;}',1000);
@@ -1093,9 +1100,11 @@ begin
       raise_application_error(-20001,'An error was encountered - '||SQLCODE||' -ERROR- '||SQLERRM);
 end;
 /
-rollback;
+
+/*
 exec populate_fisher_table;
 exec populate_fisher_games;
 
 commit;
 select * from gm_gamedef_boards where gamedef_code like 'FISH%';
+*/

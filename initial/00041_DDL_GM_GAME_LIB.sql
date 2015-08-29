@@ -8,7 +8,7 @@ create or replace package GM_GAME_LIB as
   function calc_valid_squares(p_game_id number, p_piece_id number) return varchar2;
   function format_piece(game_id number, piece_id number, player_number number, piece_name nvarchar2, svg_url nvarchar2, p_xpos number, p_ypos number) return nvarchar2;
 
-  function new_game(p_player1 nvarchar2, p_player2 nvarchar2) return number;
+  function new_game(p_player1 varchar2, p_player2 varchar2, p_game_type varchar2, p_fisher_game varchar2) return number;
   procedure output_board_config(p_game_id number);
   procedure move_piece(p_game_id number, p_piece_id number, p_xpos number, p_ypos number);
 
@@ -259,18 +259,26 @@ create or replace package body GM_GAME_LIB as
   end;
   
 /*******************************************************************************************/
-  function new_game(p_player1 nvarchar2, p_player2 nvarchar2) return number
+  function new_game(p_player1 varchar2, p_player2 varchar2, p_game_type varchar2, p_fisher_game varchar2) return number
   as
-    v_p_game_id number;
+    v_game_id number;
   begin
-    select gm_games_seq.nextval into v_p_game_id from sys.dual;  
+    select gm_games_seq.nextval into v_game_id from sys.dual;  
     insert into gm_games(game_id,   player1,  player2,  gamestart_timestamp,  lastmove_timestamp, lastmove_count) 
-                  values(v_p_game_id, p_player1, p_player2, sysdate, sysdate, 0);
+                  values(v_game_id, p_player1, p_player2, sysdate, sysdate, 0);
     
-    gm_gamedef_lib.create_board(v_p_game_id, v('P1_GAME_TYPE'));
+    if v('P1_GAME_TYPE') = 'FISHER' then 
+      gm_gamedef_lib.create_board(v_game_id, p_fisher_game);
+    else
+      gm_gamedef_lib.create_board(v_game_id, p_game_type);
+    end if;
+    
+    APEX_UTIL.SET_SESSION_STATE('P1_GAME_ID', v_game_id);
+    
+    log_message('Created new game ' || v_game_id);
     --gm_gamedef_lib.create_board(v_p_game_id, 'CHESS');
     --gm_gamedef_lib.create_board(v_p_game_id, 'CHECKERS');     
-    return v_p_game_id;
+    return v_game_id;
   end new_game;
 
 /*******************************************************************************************/

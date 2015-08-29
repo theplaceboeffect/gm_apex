@@ -9,7 +9,7 @@ drop table gm_gamedef_boards;
 create table gm_gamedef_boards
 (
   gamedef_code varchar2(8),
-  gamedef_name varchar2(20),
+  gamedef_name varchar2(50),
   max_rows number,
   max_cols number,
   constraint gm_gd_boards_pk primary key (gamedef_code)
