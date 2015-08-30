@@ -55,10 +55,8 @@ create or replace view gm_current_games_view as
     join gm_gamedef_boards D on B.board_type = D.gamedef_code
   )
   select game_id,
-          '<b><a href="f?p=' || v('APP_ID') || ':1:::::P1_GAME_ID:' || game_id || '">Game ' || game_id || ' - ' || gamedef_name || ' (' || player1 || ' vs ' || player2 || ')</b></a><br/>'
+          '<b><a href="javascript:$s("P100_NEW_GAME_ID",' || game_id || ');">Game ' || game_id || ' - ' || gamedef_name || ' (' || player1 || ' vs ' || player2 || ')</b></a><br/>'
           ||'Started ' || gamestart_timestamp || '.<br/>'
           ||'Last Move ' || lastmove_count || ' made ' || lastmove_timestamp || '.'
           gameinfo
   from x;
-  
-  select * from gm_current_games_view;
