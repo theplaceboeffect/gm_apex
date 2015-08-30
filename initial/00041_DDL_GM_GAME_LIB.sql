@@ -235,7 +235,7 @@ create or replace package body GM_GAME_LIB as
     select PT.* into v_piece_type from gm_piece_types PT where PT.piece_type_id = v_piece.piece_type_id and PT.game_id=p_game_id;
 
     select player into v_player from gm_board_pieces where game_id = p_game_id and piece_id = p_piece_id;
-    v_message := 'player ' || v_piece.player || ' moved ' || v_piece_type.piece_name || ' from ' || v_piece.xpos || ',' || v_piece.ypos || ' to ' || p_xpos || ',' || p_ypos || '.'; 
+    v_message := 'In game ' || p_game_id || ', player ' || v_piece.player || ' moved ' || v_piece_type.piece_name || ' from ' || v_piece.xpos || ',' || v_piece.ypos || ' to ' || p_xpos || ',' || p_ypos || '.'; 
     gm_chat_lib.say(v_message,'');
     
     -- Move piece    

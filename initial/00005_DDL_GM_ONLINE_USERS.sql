@@ -26,5 +26,35 @@ begin
 end; 
 
 /
-ALTER TRIGGER  "BI_GM_ONLINE_USERS" ENABLE
+ALTER TRIGGER  "BI_GM_ONLINE_USERS" ENABLE;
 /
+CREATE OR REPLACE FORCE VIEW "GM_ONLINE_USERS_VIEW" as
+  with x as (
+    select   online_user_id,
+              username,
+              login_timestamp,
+              last_ping_timestamp,
+              session_id,
+              round((sysdate - last_ping_timestamp ) * 1440) mins_ago
+      from gm_online_users T
+    )
+    select username || ' logged on ' || mins_ago || ' mins_ago.' ||
+            ' <a href=javascript:$s("P100_START_GAME_WITH","' || username 
+              || '"); apex.submit("P100_START_GAME_WITH");>Start Game ...</a>' userinfo
+            ,mins_ago
+    from x
+    order by mins_ago ;
+/
+create or replace view gm_current_games_view as
+  with x as (
+    select game_id, player1, player2, gamestart_timestamp, lastmove_timestamp, lastmove_count 
+    from gm_games
+  )
+  select game_id,
+          '<b>Game ' || game_id || ' (' || player1 || ' vs ' || player2 || ')</b><br/>'
+          ||'Started ' || gamestart_timestamp || '.<br/>'
+          ||'Last Move ' || lastmove_count || ' made ' || lastmove_timestamp || '.'
+          gameinfo
+  from x;
+  
+  select * from gm_current_games_view;
