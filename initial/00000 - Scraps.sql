@@ -28,3 +28,71 @@ begin
     end loop;
 end;
 ----------------------------------------------------------
+OLD CSS:
+/***** pieces *****/
+[type="CHECKERS-BLACK"] { background-color: darkslategray;}
+
+.game-piece {
+    width:70px
+}
+/*
+.game-piece.error {
+    -webkit-filter: hue-rotate(600deg) saturate(300);
+}
+
+.game-piece[player="1"] {
+    -webkit-filter: hue-rotate(120deg) saturate(145);
+        filter: hue-rotate(120deg) saturate(145);
+}
+
+.game-piece[player="2"] {
+    -webkit-filter: hue-rotate(120deg) saturate(5);
+        filter: hue-rotate(120deg) saturate(5);
+}
+
+.game-piece.error {
+   -webkit-filter: hue-rotate(600deg) saturate(15);
+        filter: hue-rotate(220deg) saturate(145);    
+}
+*/
+
+/***** board *****/
+[summary="Game Board 1"] td {
+    background:red;
+    padding: 0px 0px 0px 0px;
+}
+
+.board-location {
+  height:70px;
+  width:70px;
+  color: cyan;
+  font-weight: bold;
+  
+}
+
+.t-Report-cell {
+  height:70px;
+  width:70px;
+}
+
+/*
+.game-piece {
+font-size: 50px;
+}
+*/
+/*
+.bad-location {
+background-color: pink;
+border: 2px solid red;
+}
+
+.good-location {
+background-color: lightgreen;
+border: 2px solid darkgreen;
+}
+
+.capture-location {
+background-color: sandybrown;
+border: 2px solid saddlebrown;
+}
+*/

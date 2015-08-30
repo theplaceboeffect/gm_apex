@@ -7,6 +7,7 @@ drop sequence gm_online_users_seq;
 CREATE TABLE  "GM_ONLINE_USERS" 
    (	"ONLINE_USER_ID" NUMBER, 
 	"USERNAME" NVARCHAR2(50), 
+  user_icon varchar2(1000),
 	"LOGIN_TIMESTAMP" date, 
 	"LAST_PING_TIMESTAMP" date, 
 	"SESSION_ID" NUMBER, 
@@ -45,13 +46,16 @@ CREATE OR REPLACE FORCE VIEW "GM_ONLINE_USERS_VIEW" as
     from x
     order by mins_ago ;
 /
+set define off;
 create or replace view gm_current_games_view as
   with x as (
-    select game_id, player1, player2, gamestart_timestamp, lastmove_timestamp, lastmove_count 
-    from gm_games
+    select G.game_id, G.player1, G.player2, G.gamestart_timestamp, G.lastmove_timestamp, G.lastmove_count, D.gamedef_name
+    from gm_games G
+    join gm_boards B on G.game_id = B.game_id
+    join gm_gamedef_boards D on B.board_type = D.gamedef_code
   )
   select game_id,
-          '<b>Game ' || game_id || ' (' || player1 || ' vs ' || player2 || ')</b><br/>'
+          '<b><a href="f?p=' || v('APP_ID') || ':1:::::P1_GAME_ID:' || game_id || '">Game ' || game_id || ' - ' || gamedef_name || ' (' || player1 || ' vs ' || player2 || ')</b></a><br/>'
           ||'Started ' || gamestart_timestamp || '.<br/>'
           ||'Last Move ' || lastmove_count || ' made ' || lastmove_timestamp || '.'
           gameinfo

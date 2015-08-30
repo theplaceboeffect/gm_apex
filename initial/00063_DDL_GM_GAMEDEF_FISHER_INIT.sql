@@ -1,33 +1,24 @@
-alter session set current_schema=apex_gm;
-/* 
+/*
 FISHER CHESS
 Reference: https://en.wikipedia.org/wiki/Chess960
 Moves from: http://koti.mbnet.fi/villes/php/fischerandom.php 
 */
 
-//------------------------------------------------------------------------------------------
-/
 /*
-delete from gm_gamedef_pieces where gamedef_code LIKE 'FISH%';
-delete from gm_gamedef_piece_types where gamedef_code LIKE 'FISH%';
-delete from gm_gamedef_css where gamedef_code LIKE 'FISH%';
-delete from gm_gamedef_layout where gamedef_code LIKE 'FISH%';
-delete from gm_gamedef_squaretypes where gamedef_code LIKE 'FISH%';
-delete from gm_gamedef_boards where gamedef_code LIKE 'FISH%';
 
 drop table gm_fisher_positions;
-*/
 
 create table GM_FISHER_POSITIONS (
   fisher_game_id number,
   starting_position varchar2(8),
   constraint fisher_game_pk primary key(fisher_game_id)
 );
-
-/
+*/
 
 create or replace procedure populate_fisher_table as 
 begin
+   delete from gm_fisher_positions;
+
   insert into GM_FISHER_POSITIONS(fisher_game_id, starting_position) values(0,'BBQNNRKR');
   insert into GM_FISHER_POSITIONS(fisher_game_id, starting_position) values(1,'BQNBNRKR');
   insert into GM_FISHER_POSITIONS(fisher_game_id, starting_position) values(2,'BQNNRBKR');
@@ -990,8 +981,6 @@ begin
   insert into GM_FISHER_POSITIONS(fisher_game_id, starting_position) values(959,'RKRNNQBB');
 end;
 /
-//------------------------------------------------------------------------------------------
-/
 create or replace procedure populate_fisher_games 
 as
   cursor fisher_games is select * from gm_fisher_positions;
@@ -1002,6 +991,14 @@ as
   CAN_JUMP constant number := 1;
 
 begin
+
+    delete from gm_gamedef_pieces where gamedef_code LIKE 'FISH%';
+    delete from gm_gamedef_piece_types where gamedef_code LIKE 'FISH%';
+    delete from gm_gamedef_css where gamedef_code LIKE 'FISH%';
+    delete from gm_gamedef_layout where gamedef_code LIKE 'FISH%';
+    delete from gm_gamedef_squaretypes where gamedef_code LIKE 'FISH%';
+    delete from gm_gamedef_boards where gamedef_code LIKE 'FISH%';
+
     for game in fisher_games loop
       fisher_game_code := 'FISH_' || lpad(game.fisher_game_id,3,'0');
       
@@ -1077,20 +1074,20 @@ begin
         insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '.capture-location','{background-color: sandybrown;border: 2px solid saddlebrown;}',1000);
         
         -- white pieces
-        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[player="1"][piece-name="pawn"]' ,'{height:70px;width:70px;background-size: 70px 70px; background-image: url("https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg");}',100);
-        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[player="1"][piece-name="rook"]' ,'{height:70px;width:70px;background-size: 70px 70px; background-image: url("https://upload.wikimedia.org/wikipedia/commons/7/72/Chess_rlt45.svg");}',100);
-        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[player="1"][piece-name="knight"]' ,'{height:70px;width:70px;background-size: 70px 70px; background-image: url("https://upload.wikimedia.org/wikipedia/commons/7/70/Chess_nlt45.svg");}',100);
-        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[player="1"][piece-name="bishop"]' ,'{height:70px;width:70px;background-size: 70px 70px; background-image: url("https://upload.wikimedia.org/wikipedia/commons/b/b1/Chess_blt45.svg");}',100);
-        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[player="1"][piece-name="king"]' ,'{height:70px;width:70px;background-size: 70px 70px; background-image: url("https://upload.wikimedia.org/wikipedia/commons/4/42/Chess_klt45.svg");}',100);
-        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[player="1"][piece-name="queen"]' ,'{height:70px;width:70px;background-size: 70px 70px; background-image: url("https://upload.wikimedia.org/wikipedia/commons/1/15/Chess_qlt45.svg");}',100);
+        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[player="1"][piece-name="pawn"]' ,'{background-image: url("https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg");}',100);
+        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[player="1"][piece-name="rook"]' ,'{background-image: url("https://upload.wikimedia.org/wikipedia/commons/7/72/Chess_rlt45.svg");}',100);
+        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[player="1"][piece-name="knight"]' ,'{background-image: url("https://upload.wikimedia.org/wikipedia/commons/7/70/Chess_nlt45.svg");}',100);
+        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[player="1"][piece-name="bishop"]' ,'{background-image: url("https://upload.wikimedia.org/wikipedia/commons/b/b1/Chess_blt45.svg");}',100);
+        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[player="1"][piece-name="king"]' ,'{background-image: url("https://upload.wikimedia.org/wikipedia/commons/4/42/Chess_klt45.svg");}',100);
+        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[player="1"][piece-name="queen"]' ,'{background-image: url("https://upload.wikimedia.org/wikipedia/commons/1/15/Chess_qlt45.svg");}',100);
         
         -- black pieces
-        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[player="2"][piece-name="pawn"]' ,'{height:70px;width:70px;background-size: 70px 70px; background-image: url("https://upload.wikimedia.org/wikipedia/commons/c/c7/Chess_pdt45.svg");}',100);
-        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[player="2"][piece-name="rook"]' ,'{height:70px;width:70px;background-size: 70px 70px; background-image: url("https://upload.wikimedia.org/wikipedia/commons/f/ff/Chess_rdt45.svg");}',100);
-        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[player="2"][piece-name="knight"]' ,'{height:70px;width:70px;background-size: 70px 70px; background-image: url("https://upload.wikimedia.org/wikipedia/commons/e/ef/Chess_ndt45.svg");}',100);
-        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[player="2"][piece-name="bishop"]' ,'{height:70px;width:70px;background-size: 70px 70px; background-image: url("https://upload.wikimedia.org/wikipedia/commons/9/98/Chess_bdt45.svg");}',100);
-        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[player="2"][piece-name="king"]' ,'{height:70px;width:70px;background-size: 70px 70px; background-image: url("https://upload.wikimedia.org/wikipedia/commons/f/f0/Chess_kdt45.svg");}',100);
-        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[player="2"][piece-name="queen"]' ,'{height:70px;width:70px;background-size: 70px 70px; background-image: url("https://upload.wikimedia.org/wikipedia/commons/4/47/Chess_qdt45.svg");}',100);
+        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[player="2"][piece-name="pawn"]' ,'{background-image: url("https://upload.wikimedia.org/wikipedia/commons/c/c7/Chess_pdt45.svg");}',100);
+        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[player="2"][piece-name="rook"]' ,'{background-image: url("https://upload.wikimedia.org/wikipedia/commons/f/ff/Chess_rdt45.svg");}',100);
+        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[player="2"][piece-name="knight"]' ,'{background-image: url("https://upload.wikimedia.org/wikipedia/commons/e/ef/Chess_ndt45.svg");}',100);
+        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[player="2"][piece-name="bishop"]' ,'{background-image: url("https://upload.wikimedia.org/wikipedia/commons/9/98/Chess_bdt45.svg");}',100);
+        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[player="2"][piece-name="king"]' ,'{background-image: url("https://upload.wikimedia.org/wikipedia/commons/f/f0/Chess_kdt45.svg");}',100);
+        insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values(fisher_game_code, '[player="2"][piece-name="queen"]' ,'{background-image: url("https://upload.wikimedia.org/wikipedia/commons/4/47/Chess_qdt45.svg");}',100);
         commit;
       end if;
     end loop;
@@ -1099,12 +1096,9 @@ begin
     when others then
       raise_application_error(-20001,'An error was encountered - '||SQLCODE||' -ERROR- '||SQLERRM);
 end;
-/
-
 /*
 exec populate_fisher_table;
 exec populate_fisher_games;
 
 commit;
-select * from gm_gamedef_boards where gamedef_code like 'FISH%';
 */

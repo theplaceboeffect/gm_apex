@@ -78,6 +78,7 @@ create or replace view gm_board_css as
   )
   order by display_order
   ;
+  select * from gm_gamedef_css;
 /*
 create or replace view gm_board_css as
   select game_id,css, display_order 
