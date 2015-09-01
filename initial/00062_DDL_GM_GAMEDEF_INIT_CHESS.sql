@@ -36,12 +36,18 @@ begin
   end loop;
     
     -- define each pice
-    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, directions_allowed ) values('CHESS', 'PAWN', 'pawn', CANNOT_JUMP,  1, '^');
-    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, directions_allowed ) values('CHESS', 'BISHOP', 'bishop', CANNOT_JUMP, 0, 'X');
-    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, directions_allowed ) values('CHESS', 'KNIGHT', 'knight', CAN_JUMP, 1, '^^>:^^<:vv<:vv>:>>^:>>v:<<^:<<v');
-    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, directions_allowed ) values('CHESS', 'ROOK', 'rook',  CANNOT_JUMP, 0, '+');
-    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, directions_allowed ) values('CHESS', 'QUEEN', 'queen', CANNOT_JUMP, 0, 'O');
-    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, directions_allowed ) values('CHESS', 'KING', 'king', CANNOT_JUMP, 1, 'O');
+    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed ) 
+                                        values('CHESS', 'PAWN', 'pawn', CANNOT_JUMP,  1, '^^:^', '^');
+    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed ) 
+                                        values('CHESS', 'BISHOP', 'bishop', CANNOT_JUMP, 0, null, 'X');
+    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed ) 
+                                        values('CHESS', 'KNIGHT', 'knight', CAN_JUMP, 1, null, '^^>:^^<:vv<:vv>:>>^:>>v:<<^:<<v');
+    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed ) 
+                                        values('CHESS', 'ROOK', 'rook',  CANNOT_JUMP, 0, null, '+');
+    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed ) 
+                                        values('CHESS', 'QUEEN', 'queen', CANNOT_JUMP, 0, null, 'O');
+    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed ) 
+                                        values('CHESS', 'KING', 'king', CANNOT_JUMP, 1, null, 'O');
 
   -- define piece locations
   -- Place white pieces
@@ -88,10 +94,10 @@ begin
   insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '[type=CHESS-WHITE]','{background-color: lightgray;}', 1);
   insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '.bad-location',' {background-color: pink; border: 2px solid red;}', 1000);
   insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '.good-location','{background-color: lightgreen; border: 2px solid darkgreen;}',1000);
-  insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '.capture-location','{background-color: sandybrown;border: 2px solid saddlebrown;}',1000);
+  insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '.capture-location','{background-color: sandybrown;border: 2px solid saddlebrown;}',1002);
   
   -- white pieces
-  insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '[player="1"][piece-name="pawn"]' ,'{background-size: 70px 70px; background-image: url("https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg");}',100);
+  insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '[player="1"][piece-name="pawn"]' ,'{background-image: url("https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg");}',100);
   insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '[player="1"][piece-name="rook"]' ,'{background-image: url("https://upload.wikimedia.org/wikipedia/commons/7/72/Chess_rlt45.svg");}',100);
   insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '[player="1"][piece-name="knight"]' ,'{background-image: url("https://upload.wikimedia.org/wikipedia/commons/7/70/Chess_nlt45.svg");}',100);
   insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '[player="1"][piece-name="bishop"]' ,'{background-image: url("https://upload.wikimedia.org/wikipedia/commons/b/b1/Chess_blt45.svg");}',100);
@@ -106,3 +112,8 @@ begin
   insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '[player="2"][piece-name="king"]' ,'{background-image: url("https://upload.wikimedia.org/wikipedia/commons/f/f0/Chess_kdt45.svg");}',100);
   insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '[player="2"][piece-name="queen"]' ,'{background-image: url("https://upload.wikimedia.org/wikipedia/commons/4/47/Chess_qdt45.svg");}',100);
 end;
+/
+exec gm_gamedef_mk_chess;
+/
+commit;
+/

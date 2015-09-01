@@ -1,4 +1,4 @@
-alter session set current_schema=apex_gm;
+--alter session set current_schema=apex_gm;
 
 CREATE OR REPLACE FORCE VIEW gm_board_view as
   with pieces as (
@@ -9,8 +9,7 @@ CREATE OR REPLACE FORCE VIEW gm_board_view as
                 P.ypos ,
                 P.player ,
                 P.status ,
-                T.piece_name,
-                T.svg_url
+                T.piece_name
         from gm_board_pieces P
         join gm_piece_types T on P.piece_type_id = T.piece_type_id and P.game_id = T.game_id
       )
@@ -20,14 +19,14 @@ CREATE OR REPLACE FORCE VIEW gm_board_view as
       )
       ,board as (
         select R.game_id, R.ypos ypos, 
-           gm_game_lib.format_piece(R.game_id, X1.piece_id, X1.player, X1.piece_name, X1.svg_url, 1, R.ypos) cell_1,
-           gm_game_lib.format_piece(R.game_id, X2.piece_id, X2.player, X2.piece_name, X2.svg_url, 2, R.ypos) cell_2,
-           gm_game_lib.format_piece(R.game_id, X3.piece_id, X3.player, X3.piece_name, X3.svg_url, 3, R.ypos) cell_3,
-           gm_game_lib.format_piece(R.game_id, X4.piece_id, X4.player, X4.piece_name, X4.svg_url, 4, R.ypos) cell_4,
-           gm_game_lib.format_piece(R.game_id, X5.piece_id, X5.player, X5.piece_name, X5.svg_url, 5, R.ypos) cell_5,
-           gm_game_lib.format_piece(R.game_id, X6.piece_id, X6.player, X6.piece_name, X6.svg_url, 6, R.ypos) cell_6,
-           gm_game_lib.format_piece(R.game_id, X7.piece_id, X7.player, X7.piece_name, X7.svg_url, 7, R.ypos) cell_7,
-           gm_game_lib.format_piece(R.game_id, X8.piece_id, X8.player, X8.piece_name, X8.svg_url, 8, R.ypos) cell_8
+           gm_game_lib.format_piece(R.game_id, X1.piece_id, X1.player, X1.piece_name, 1, R.ypos) cell_1,
+           gm_game_lib.format_piece(R.game_id, X2.piece_id, X2.player, X2.piece_name, 2, R.ypos) cell_2,
+           gm_game_lib.format_piece(R.game_id, X3.piece_id, X3.player, X3.piece_name, 3, R.ypos) cell_3,
+           gm_game_lib.format_piece(R.game_id, X4.piece_id, X4.player, X4.piece_name, 4, R.ypos) cell_4,
+           gm_game_lib.format_piece(R.game_id, X5.piece_id, X5.player, X5.piece_name, 5, R.ypos) cell_5,
+           gm_game_lib.format_piece(R.game_id, X6.piece_id, X6.player, X6.piece_name, 6, R.ypos) cell_6,
+           gm_game_lib.format_piece(R.game_id, X7.piece_id, X7.player, X7.piece_name, 7, R.ypos) cell_7,
+           gm_game_lib.format_piece(R.game_id, X8.piece_id, X8.player, X8.piece_name, 8, R.ypos) cell_8
         from occupied_rows R
           left join pieces X1 on R.game_id = X1.game_id and X1.xpos=1 and R.ypos = X1.ypos and X1.status <> 0
           left join pieces X2 on R.game_id = X2.game_id and X2.xpos=2 and R.ypos = X2.ypos and X2.status <> 0
@@ -42,18 +41,18 @@ CREATE OR REPLACE FORCE VIEW gm_board_view as
     select
       B.game_id ,
       S.ypos,
-      '<div id="loc-1-' || S.ypos  || '" class="board-location" xpos=1 ypos=' || S.ypos || ' type="' || B.board_type || '-' || S.cell_1  || '">' || p.cell_1 || '</div>' cell_1 ,
-      '<div id="loc-2-' || S.ypos  || '" class="board-location" xpos=2 ypos=' || S.ypos || ' type="' || B.board_type || '-' || S.cell_2  || '">' || p.cell_2 || '</div>' cell_2 ,
-      '<div id="loc-3-' || S.ypos  || '" class="board-location" xpos=3 ypos=' || S.ypos || ' type="' || B.board_type || '-' || S.cell_3  || '">' || p.cell_3 || '</div>' cell_3 ,
-      '<div id="loc-4-' || S.ypos  || '" class="board-location" xpos=4 ypos=' || S.ypos || ' type="' || B.board_type || '-' || S.cell_4  || '">' || p.cell_4 || '</div>' cell_4 ,
-      '<div id="loc-5-' || S.ypos  || '" class="board-location" xpos=5 ypos=' || S.ypos || ' type="' || B.board_type || '-' || S.cell_5  || '">' || p.cell_5 || '</div>' cell_5 ,
-      '<div id="loc-6-' || S.ypos  || '" class="board-location" xpos=6 ypos=' || S.ypos || ' type="' || B.board_type || '-' || S.cell_6  || '">' || p.cell_6 || '</div>' cell_6 ,
-      '<div id="loc-7-' || S.ypos  || '" class="board-location" xpos=7 ypos=' || S.ypos || ' type="' || B.board_type || '-' || S.cell_7  || '">' || p.cell_7 || '</div>' cell_7 ,
-      '<div id="loc-8-' || S.ypos  || '" class="board-location" xpos=8 ypos=' || S.ypos || ' type="' || B.board_type || '-' || S.cell_8  || '">' || p.cell_8 || '</div>' cell_8 ,
-      '<div id="loc-9-' || S.ypos  || '" class="board-location" xpos=9 ypos=' || S.ypos || ' type="' || B.board_type || '-' || S.cell_9  || '">' || '' || '</div>' cell_9 ,
-      '<div id="loc-10-' || S.ypos || '" class="board-location" xpos=10 ypos=' || S.ypos || ' type="' || B.board_type || '-' || S.cell_10 || '">' || '' || '</div>' cell_10 ,
-      '<div id="loc-12-' || S.ypos || '" class="board-location" xpos=11 ypos=' || S.ypos || ' type="' || B.board_type || '-' || S.cell_11 || '">' || '' || '</div>' cell_11 ,
-      '<div id="loc-11-' || S.ypos || '" class="board-location" xpos=12 ypos=' || S.ypos || ' type="' || B.board_type || '-' || S.cell_12 || '">' || '' || '</div>' cell_12
+      '<div id="loc-1-' || S.ypos  || '" class="board-location" xpos=1 ypos=' || S.ypos ||  ' location=1.' || S.ypos  || ' type="' || B.board_type || '-' || S.cell_1  || '">' || p.cell_1 || '</div>' cell_1 ,
+      '<div id="loc-2-' || S.ypos  || '" class="board-location" xpos=2 ypos=' || S.ypos ||  ' location=2.' || S.ypos  ||  ' type="' || B.board_type || '-' || S.cell_2  || '">' || p.cell_2 || '</div>' cell_2 ,
+      '<div id="loc-3-' || S.ypos  || '" class="board-location" xpos=3 ypos=' || S.ypos ||  ' location=3.' || S.ypos  || ' type="' || B.board_type || '-' || S.cell_3  || '">' || p.cell_3 || '</div>' cell_3 ,
+      '<div id="loc-4-' || S.ypos  || '" class="board-location" xpos=4 ypos=' || S.ypos ||  ' location=4.' || S.ypos  || ' type="' || B.board_type || '-' || S.cell_4  || '">' || p.cell_4 || '</div>' cell_4 ,
+      '<div id="loc-5-' || S.ypos  || '" class="board-location" xpos=5 ypos=' || S.ypos ||  ' location=5.' || S.ypos  || ' type="' || B.board_type || '-' || S.cell_5  || '">' || p.cell_5 || '</div>' cell_5 ,
+      '<div id="loc-6-' || S.ypos  || '" class="board-location" xpos=6 ypos=' || S.ypos ||  ' location=6.' || S.ypos  || ' type="' || B.board_type || '-' || S.cell_6  || '">' || p.cell_6 || '</div>' cell_6 ,
+      '<div id="loc-7-' || S.ypos  || '" class="board-location" xpos=7 ypos=' || S.ypos ||  ' location=7.' || S.ypos  ||  ' type="' || B.board_type || '-' || S.cell_7  || '">' || p.cell_7 || '</div>' cell_7 ,
+      '<div id="loc-8-' || S.ypos  || '" class="board-location" xpos=8 ypos=' || S.ypos ||  ' location=8.' || S.ypos  ||  ' type="' || B.board_type || '-' || S.cell_8  || '">' || p.cell_8 || '</div>' cell_8 ,
+      '<div id="loc-9-' || S.ypos  || '" class="board-location" xpos=9 ypos=' || S.ypos ||  ' location=9.' || S.ypos  || ' type="' || B.board_type || '-' || S.cell_9  || '">' || '' || '</div>' cell_9 ,
+      '<div id="loc-10-' || S.ypos || '" class="board-location" xpos=10 ypos=' || S.ypos || ' location=10.' || S.ypos || ' type="' || B.board_type || '-' || S.cell_10 || '">' || '' || '</div>' cell_10 ,
+      '<div id="loc-12-' || S.ypos || '" class="board-location" xpos=11 ypos=' || S.ypos || ' location=11.' || S.ypos || ' type="' || B.board_type || '-' || S.cell_11 || '">' || '' || '</div>' cell_11 ,
+      '<div id="loc-11-' || S.ypos || '" class="board-location" xpos=12 ypos=' || S.ypos || ' location=12.' || S.ypos || ' type="' || B.board_type || '-' || S.cell_12 || '">' || '' || '</div>' cell_12
     from gm_board_states S
     join gm_boards B on S.game_id = B.game_id
     left join board P on S.game_id = P.game_id and S.ypos = P.ypos and S.game_id=P.game_id
@@ -67,7 +66,16 @@ create or replace view gm_board_css as
     -- start CSS
     select '<style type="text/css">' css, 0 display_order from dual
     union all
-    --Other CSS
+    select '[summary="???"] {}' css, 1 display_order from dual
+    union all
+    -- Board CSS
+    select '[summary="GameBoard"] td {    padding: 0px 0px 0px 0px;}' css, 10 display_order from dual
+    union all
+    select '.board-location {  height:' || v('P1_SQUARE_SIZE') || 'px;  width:' || v('P1_SQUARE_SIZE') || 'px;}' css, 10 display_order from dual
+    union all
+    select '.game-piece {height:' || v('P1_SQUARE_SIZE') || 'px;width:' || v('P1_SQUARE_SIZE') || 'px;background-size: ' || v('P1_SQUARE_SIZE') || 'px ' || v('P1_SQUARE_SIZE') || 'px;}' css, 10 display_order from dual
+    union all
+    -- GameDef CSS
     select css_selector || ' ' || css_definition board_css, css_order display_order
     from gm_gamedef_css where gamedef_code=(select board_type from gm_boards where game_id=v('P1_GAME_ID'))
     union all

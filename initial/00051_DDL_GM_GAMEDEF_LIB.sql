@@ -39,14 +39,14 @@ create or replace package body GM_GAMEDEF_LIB as
     -- Initialize the pieces
 
     --/* Local SVG
-    insert into gm_piece_types(game_id,piece_type_id, piece_name, can_jump, n_steps_per_move, directions_allowed) 
-                  select p_game_id, piece_type_code, piece_name, can_jump, n_steps_per_move, directions_allowed 
+    insert into gm_piece_types(game_id,piece_type_id, piece_name, can_jump, n_steps_per_move, first_move, directions_allowed) 
+                  select p_game_id, piece_type_code, piece_name, can_jump, n_steps_per_move, first_move, directions_allowed 
                   from gm_gamedef_piece_types
                   where gamedef_code=p_game_name; 
                   
-    -- Place white pieces
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, xpos, ypos, player, status)
-                select p_game_id, piece_type_code, piece_id, xpos, ypos, player, status
+    -- Place board pieces
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, xpos, ypos, player, status, num_moves_made)
+                select p_game_id, piece_type_code, piece_id, xpos, ypos, player, status, 0
                 from gm_gamedef_pieces
                 where gamedef_code=p_game_name;
 

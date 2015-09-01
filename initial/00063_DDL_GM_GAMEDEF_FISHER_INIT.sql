@@ -1004,7 +1004,7 @@ begin
       
       select count(*) into i from gm_gamedef_boards where gamedef_code=fisher_game_code;
       if i=0 then
-        dbms_output.put_line('Fisher Game ' || lpad(game.fisher_game_id,3,'0') || ' - ' || game.starting_position);
+        --dbms_output.put_line('Fisher Game ' || lpad(game.fisher_game_id,3,'0') || ' - ' || game.starting_position);
         -- define 8x8 board.
         insert into gm_gamedef_boards(gamedef_code, gamedef_name, max_rows, max_cols) values(fisher_game_code, 'Fisher Game ID=' || lpad(game.fisher_game_id,3,'0') || ':' || game.starting_position, 8, 8);
         
@@ -1031,12 +1031,18 @@ begin
         end;
         
         -- define each pice
-          insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, directions_allowed ) values(fisher_game_code, 'PAWN', 'pawn', CANNOT_JUMP,  1, '^');
-          insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, directions_allowed ) values(fisher_game_code, 'BISHOP', 'bishop', CANNOT_JUMP, 0, 'X');
-          insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, directions_allowed ) values(fisher_game_code, 'KNIGHT', 'knight', CAN_JUMP, 1, '^^>:^^<:vv<:vv>:>>^:>>v:<<^:<<v');
-          insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, directions_allowed ) values(fisher_game_code, 'ROOK', 'rook',  CANNOT_JUMP, 0, '+');
-          insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, directions_allowed ) values(fisher_game_code, 'QUEEN', 'queen', CANNOT_JUMP, 0, 'O');
-          insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, directions_allowed ) values(fisher_game_code, 'KING', 'king', CANNOT_JUMP, 1, 'O');
+          insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed ) 
+                                              values(fisher_game_code, 'PAWN', 'pawn', CANNOT_JUMP,  1, '^:^^', '^');
+          insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move,  directions_allowed ) 
+                                              values(fisher_game_code, 'BISHOP', 'bishop', CANNOT_JUMP, 0, null, 'X');
+          insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move,  directions_allowed ) 
+                                              values(fisher_game_code, 'KNIGHT', 'knight', CAN_JUMP, 1, null, '^^>:^^<:vv<:vv>:>>^:>>v:<<^:<<v');
+          insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move,  directions_allowed ) 
+                                              values(fisher_game_code, 'ROOK', 'rook',  CANNOT_JUMP, 0, null, '+');
+          insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move,  directions_allowed ) 
+                                              values(fisher_game_code, 'QUEEN', 'queen', CANNOT_JUMP, 0, null, 'O');
+          insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move,  directions_allowed ) 
+                                              values(fisher_game_code, 'KING', 'king', CANNOT_JUMP, 1, null, 'O');
   
         -- define piece locations
         -- Place white pieces
@@ -1096,9 +1102,9 @@ begin
     when others then
       raise_application_error(-20001,'An error was encountered - '||SQLCODE||' -ERROR- '||SQLERRM);
 end;
-/*
+/
 exec populate_fisher_table;
 exec populate_fisher_games;
-
+/
 commit;
-*/
+/

@@ -66,14 +66,22 @@ function gm_board()
         console.log(debug_string);
     }
 
+    this.show_valid_moves_for=function show_valid_moves_for(piece) {
+        $("#"+piece.getAttribute('id')).attr('positions').split(':').forEach(function(item) { if (item != '') { $("#" + item).addClass('good-location') }});
+    }
     this.reset_board_location_highlights=function reset_board_location_highlights() {
         //$('.board-location').css('border','0px');
         $('.board-location').removeClass('bad-location');
         $('.board-location').removeClass('good-location');
+        $('.board-location').removeClass('capture-location');
     }
 }
+
+//
 //----------------------------------------------------
 board=new gm_board();
+last_attacked_location='';
+last_accept_location='';
 
 function InitializeBoardDragAndDrop()
 {
@@ -81,36 +89,27 @@ function InitializeBoardDragAndDrop()
                 , {/* dragula options */
                     revertOnSpill:true,
                     accepts: function (piece, target, source, sibling) {
-                        
-                        // Do we really need to run this every time!
-                        $("#"+piece.getAttribute('id')).attr('positions').split(':').forEach(function(item) { if (item != '') { $("#" + item).addClass('good-location') }});
-
+                        var current_location = target.getAttribute('id');
+                        if (last_accept_location == current_location ) {
+                            return;
+                        } else {
+                            last_accept_location = current_location;                        
+                        }
+                            
+                        // Do we really need to run this every time!?
+                        board.show_valid_moves_for(piece);
                         $('.board-location').removeClass('bad-location');
-                        if ($("#"+target.getAttribute('id')).hasClass('good-location') == false) {
-                            $("#"+target.getAttribute('id')).addClass('bad-location');
+                        
+                        if ( current_location !== last_attacked_location) {
+                            $('.board-location').removeClass('capture-location');
+                        }
+                        
+                        if ($("#"+current_location ).hasClass('good-location') == false) {
+                            $("#"+current_location ).addClass('bad-location');
+                            $('.board-location').removeClass('capture-location');
                             return false;                                
                         }
                         return true;
-                        if (typeof(occupied_by) !== 'undefined' && occupied_by != piece.getAttribute('id') )
-                        {
-                            //$("#"+target.getAttribute('id')).css('border','2px solid red');
-                            $("#"+target.getAttribute('id')).addClass('bad-location');
-                            return false;                                
-                        }
-
-                        // Suppress.
-                        if (piece.getAttribute('id') == target.getAttribute('id')) {
-                            console.log("REJECTING MOVE");
-                            //board.color_piece(piece.getAttribute('id'), 'error');
-                            return false;    
-                        }
-
-                        if (piece.getAttribute('id') != target.getAttribute('id'))
-                        {
-                            console.log('accepts: piece' + piece.getAttribute('id') + " moving into " + target.getAttribute('id') + " from " + source.getAttribute('id'));
-                            board.dump_board_location(target, "Target");
-                        }
-                        return true; // elements can be dropped in any of the `containers` by default
                 }
                 });
 
@@ -122,7 +121,17 @@ function InitializeBoardDragAndDrop()
     });
     d.on('over', function(piece,container,source) {
             console.log("ON OVER:(" + board.xpos(piece) + "," + board.ypos(piece) + ") container (" + board.xpos(container) + "," + board.ypos(container) + ")" );
-            $("#"+piece.getAttribute('id')).attr('positions').split(':').forEach(function(item) { if (item != '') {  $("#" + item).addClass('good-location')  } })   
+            
+            var location = container.getAttribute('location');
+            var source_location = source.getAttribute('location');
+            var player=$('.game-piece[location="' + location +'"]').attr('player');
+
+            if ((typeof player === 'string') && (location != source_location) ){
+                $("#"+container.getAttribute('id')).removeClass('good-location');
+                $("#"+container.getAttribute('id')).addClass('capture-location');
+                last_attacked_location=container.getAttribute('id');
+                console.log('last_attacked_location=' + container.getAttribute('id'));
+            } 
     });
         ;
     d.on('cancel', function(piece,container) {
@@ -131,12 +140,21 @@ function InitializeBoardDragAndDrop()
 
     });
     
-    d.on('drag', function(piece,source) {
-        t=new Opentip("#"+piece.getAttribute('id'), "Optional content", "Optional title");
-        t.show();
+    d.on('drag', function(piece,container) {
+        console.log("ON DRAG:(" + board.xpos(piece) + "," + board.ypos(piece) + ") container (" + board.xpos(container) + "," + board.ypos(container) + ")" );
     });
          
+    $(".game-piece").each(function(i,o) {
+        new Opentip("#"+o.getAttribute('id')
+            , 'id:' + o.getAttribute('id')
+                    + '<br/>@' + o.getAttribute('xpos') + ',' + o.getAttribute('ypos')
+                    + '<br/>Positions:' + o.getAttribute('positions')
+                , o.getAttribute('piece-name') 
+            );
+    });
     
+
+
 }
 
 

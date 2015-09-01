@@ -44,6 +44,7 @@ create table gm_gamedef_piece_types
   piece_name varchar2(50),
   n_steps_per_move number,
   can_jump number,
+  first_move varchar2(100),
   directions_allowed varchar2(100),
   constraint gm_gd_piecetype_pk primary key (gamedef_code, piece_type_code),
   constraint gm_gd_piecetype_gd_fk foreign key(gamedef_code) references gm_gamedef_boards(gamedef_code)
