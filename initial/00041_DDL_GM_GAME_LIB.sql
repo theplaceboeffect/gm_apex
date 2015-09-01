@@ -1,20 +1,4 @@
-alter session set current_schema=apex_gm;
-
---select gm_game_lib.calc_valid_squares(3, 101) from dual;
-
-create or replace package GM_GAME_LIB as
-
-  function move_in_direction( p_piece gm_board_pieces%rowtype, p_piece_type gm_piece_types%rowtype, p_max_distance_per_move number,p_x_steps number, p_y_steps number, new_xpos in out number, new_ypos in out number, ended_on out nvarchar2) return nvarchar2;
-  function calc_valid_squares(p_game_id number, p_piece_id number) return varchar2;
-  function format_piece(game_id number, piece_id number, player_number number, piece_name nvarchar2, p_xpos number, p_ypos number) return nvarchar2;
-
-  function new_game(p_player1 varchar2, p_player2 varchar2, p_game_type varchar2, p_fisher_game varchar2) return number;
-  procedure output_board_config(p_game_id number);
-  procedure move_piece(p_game_id number, p_piece_id number, p_xpos number, p_ypos number);
-
-end GM_GAME_LIB;
-/
-create or replace package body GM_GAME_LIB as
+CREATE OR REPLACE package body APEX_GM.GM_GAME_LIB as
 
   -- *****************************************************************************
   function move_in_direction( p_piece gm_board_pieces%rowtype, p_piece_type gm_piece_types%rowtype, p_max_distance_per_move number,p_x_steps number, p_y_steps number, new_xpos in out number, new_ypos in out number, ended_on out nvarchar2) return nvarchar2
@@ -26,7 +10,7 @@ create or replace package body GM_GAME_LIB as
     stop_moving boolean;
   begin
     stop_moving := false;
-    dbms_output.put_line('  move_in_direction:' || p_max_distance_per_move || ':Delta:' || p_x_steps || ',' || p_y_steps);
+    dbms_output.put_line('  move_in_direction:' || p_max_distance_per_move || ':Delta:' || p_x_steps || ',' || p_y_steps || ' New:' || new_xpos || ',' || new_ypos);
     for step in 1..p_max_distance_per_move loop
       new_xpos := nvl(new_xpos, p_piece.xpos) + p_x_steps;
       new_ypos := nvl(new_ypos, p_piece.ypos) + p_y_steps;
@@ -90,6 +74,7 @@ create or replace package body GM_GAME_LIB as
     v_positions varchar2(4000);
     v_move_choices apex_application_global.vc_arr2;
     move_choice varchar2(100);
+    v_directions_allowed varchar2(100);
     move_step varchar(1);
     new_x number;
     new_y number;
@@ -128,12 +113,18 @@ create or replace package body GM_GAME_LIB as
     -- Current position is also valid!
     v_positions := 'loc-' || v_piece.xpos || '-' || v_piece.ypos;
     
+    v_directions_allowed := case  when v_piece_type.directions_allowed = '+' then '^:v:<:>'
+                             when v_piece_type.directions_allowed = 'x' then '\:/:L:J'
+                             when v_piece_type.directions_allowed = 'O' then '^:v:<:>:\:/:L:J'
+                             else
+                                v_piece_type.directions_allowed
+                        end; 
     if v_piece.num_moves_made = 0 and v_piece_type.first_move is not null then
       v_move_choices := apex_util.string_to_table(v_piece_type.first_move,':');
       dbms_output.put_line('---> Number of choices: ' || v_move_choices.count || ' from "' || v_piece_type.first_move || '"' );
     else
-      v_move_choices := apex_util.string_to_table(v_piece_type.directions_allowed,':');
-      dbms_output.put_line('---> Number of choices: ' || v_move_choices.count || ' from "' || v_piece_type.directions_allowed || '"' );
+      v_move_choices := apex_util.string_to_table(v_directions_allowed,':');
+      dbms_output.put_line('---> Number of choices: ' || v_move_choices.count || ' from "' || v_directions_allowed || '"' );
     end if;
     
     for z in 1..v_move_choices.count loop
@@ -147,60 +138,48 @@ create or replace package body GM_GAME_LIB as
         
         if move_step = '^' or move_step = '+' or move_step='O'then
           dbms_output.put_line('[DEBUG^:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
-          --new_x := null;
-          --new_y := null;
           v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, 0, distance_per_step, new_x, new_y, ended_on);
           dbms_output.put_line('[DEBUG^:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
         end if;
     
         if move_step = 'v' or move_step = '+' or move_step='O'then        
           dbms_output.put_line('[DEBUGv:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
-          new_x := null;
-          new_y := null;
           v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, 0, (-distance_per_step), new_x, new_y, ended_on);
           dbms_output.put_line('[DEBUGv:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
         end if;
   
         if move_step = '<' or move_step = '+' or move_step='O'then        
           dbms_output.put_line('[DEBUG<:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
-          new_x := null;
-          new_y := null;
           v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), 0, new_x, new_y, ended_on);
           dbms_output.put_line('[DEBUG<:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
         end if;
   
         if move_step = '>' or move_step = '+' or move_step='O'then        
           dbms_output.put_line('[DEBUG>:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
-          new_x := null;
-          new_y := null;
           v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (distance_per_step), 0, new_x, new_y, ended_on);
           dbms_output.put_line('[DEBUG>:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
         end if;
   
         if move_step = '\' or move_step='O'or move_step = 'X' then        
           dbms_output.put_line('[DEBUG\:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
-          new_x := null;
-          new_y := null;
           v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (distance_per_step), (distance_per_step), new_x, new_y, ended_on);
           dbms_output.put_line('[DEBUG\:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
         end if;
 
         if move_step = '/' or move_step='O' or move_step = 'X' then        
           dbms_output.put_line('[DEBUG/:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
-          new_x := null;
-          new_y := null;
           v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), (distance_per_step), new_x, new_y, ended_on);
           dbms_output.put_line('[DEBUG/:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
         end if;
 
+        if move_step = 'L' or move_step='O' then    
+          dbms_output.put_line('[DEBUGX:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
+          v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), (-distance_per_step), new_x, new_y, ended_on);
+          dbms_output.put_line('[DEBUGX:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
+        end if;
         if move_step = 'X' or move_step='O' then    
           dbms_output.put_line('[DEBUGX:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
-          new_x := null;
-          new_y := null;
           v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (distance_per_step), (-distance_per_step), new_x, new_y, ended_on);
-          new_x := null;
-          new_y := null;
-          v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), (-distance_per_step), new_x, new_y, ended_on);
           dbms_output.put_line('[DEBUGX:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
         end if;
       end loop; -- for c
@@ -348,3 +327,4 @@ create or replace package body GM_GAME_LIB as
   end output_board_config;
 
 end GM_GAME_LIB;
+/
