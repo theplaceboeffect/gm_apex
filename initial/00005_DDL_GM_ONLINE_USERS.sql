@@ -49,10 +49,12 @@ CREATE OR REPLACE FORCE VIEW "GM_ONLINE_USERS_VIEW" as
 set define off;
 create or replace view gm_current_games_view as
   with x as (
-    select G.game_id, G.player1, G.player2, G.gamestart_timestamp, G.lastmove_timestamp, G.lastmove_count, D.gamedef_name
+    select G.game_id, G.player1, G.player2, min(H.move_time) gamestart_timestamp, max(H.move_time) lastmove_timestamp, count(H.game_id) lastmove_count, D.gamedef_name
     from gm_games G
     join gm_boards B on G.game_id = B.game_id
     join gm_gamedef_boards D on B.board_type = D.gamedef_code
+    join gm_game_history H on G.game_id = H.game_id
+    group by G.game_id, G.player1, G.player2, D.gamedef_name
   )
   select game_id,
           '<b><a href="javascript:GoToGame(' || game_id || ');">Game ' || game_id || ' - ' || gamedef_name || ' (' || player1 || ' vs ' || player2 || ')</b></a><br/>'
@@ -60,5 +62,3 @@ create or replace view gm_current_games_view as
           ||'Last Move ' || lastmove_count || ' made ' || lastmove_timestamp || '.'
           gameinfo
   from x;
-  
-  select * from gm_current_games_view;

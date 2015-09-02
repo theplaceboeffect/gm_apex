@@ -1,5 +1,6 @@
 alter session set current_schema=apex_gm;
 
+drop table gm_game_history;
 drop table gm_piece_types;
 drop table gm_board_pieces;
 drop table gm_board_states;
@@ -9,6 +10,7 @@ drop table GM_GAMES;
 drop sequence gm_piece_types_seq;
 drop sequence GM_GAMES_seq;
 drop sequence gm_board_pieces_id;
+drop sequence gm_game_history_seq;
 /
 
 create table  gm_games 
@@ -17,8 +19,8 @@ create table  gm_games
   player1 nvarchar2(50),
   player2 nvarchar2(50),
   gamestart_timestamp date,
-  lastmove_timestamp date,
-  lastmove_count number,
+--  lastmove_timestamp date,
+--  lastmove_count number,
   constraint game_id_pk primary key (game_id)
 );
 /
@@ -77,17 +79,46 @@ create sequence gm_piece_types_seq;
 create table gm_board_pieces
 (
   game_id number,
-  piece_type_id varchar2(20),
   piece_id number,
-  num_moves_made number,
+  piece_type_id varchar2(20),
+--  num_moves_made number,
   xpos number,
   ypos number,
-  player varchar2(50),
+  player number,
   status number,
 
-  constraint board_pieces_id_pk primary key (game_id, piece_type_id, piece_id),
+  constraint board_pieces_id_pk primary key (game_id, piece_id),
   constraint board_pieces_game_id_fk foreign key (game_id) references gm_games(game_id)
 );
 /
 create sequence gm_board_pieces_id;
+/
+create sequence gm_game_history_seq;
+/
+create table gm_game_history
+(
+  history_id number,
+  game_id number,
+  piece_id number,
+  player number,
+  old_xpos number,
+  old_ypos number,
+  new_xpos number,
+  new_ypos number,
+  move_time date default sysdate,
+  
+  constraint game_history_pk primary key (history_id),
+  constraint game_history_fk foreign key (game_id, piece_id) references gm_board_pieces(game_id, piece_id)
+
+);
+/
+set define off;
+create trigger bi_gm_game_history
+before insert on gm_game_history
+for each row
+begin
+  if :new.history_id is null then
+    select gm_game_history_seq.nextval into :new.history_id from dual;
+  end if;
+end;
 /

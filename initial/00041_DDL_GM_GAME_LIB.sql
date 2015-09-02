@@ -88,6 +88,7 @@ create or replace package body         GM_GAME_LIB as
     move_choice varchar2(100);
     v_directions_allowed varchar2(100);
     move_step varchar(1);
+    n_moves_made_by_piece  number;
     new_x number;
     new_y number;
     new_position varchar2(50);
@@ -132,7 +133,8 @@ create or replace package body         GM_GAME_LIB as
                              else
                                 v_piece_type.directions_allowed
                         end; 
-    if v_piece.num_moves_made = 0 and v_piece_type.first_move is not null then
+    select count(*) into n_moves_made_by_piece from gm_game_history where game_id=p_game_id and piece_id=p_piece_id;
+    if n_moves_made_by_piece = 0 and v_piece_type.first_move is not null then
       v_move_choices := apex_util.string_to_table(v_piece_type.first_move,':');
       dbms_output.put_line('---> Number of choices: ' || v_move_choices.count || ' from "' || v_piece_type.first_move || '"' );
     else
@@ -149,52 +151,25 @@ create or replace package body         GM_GAME_LIB as
       for c in 1..length(move_choice) loop
         move_step := substr(move_choice,c,1);
         
-        if move_step = '^' or move_step = '+' or move_step='O'then
-          dbms_output.put_line('[DEBUG^:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
+        dbms_output.put_line('[DEBUG1:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
+        if move_step = '^' then
           v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, 0, distance_per_step, new_x, new_y, ended_on);
-          dbms_output.put_line('[DEBUG^:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
-        end if;
-    
-        if move_step = 'v' or move_step = '+' or move_step='O'then        
-          dbms_output.put_line('[DEBUGv:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
+        elsif move_step = 'v'then        
           v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, 0, (-distance_per_step), new_x, new_y, ended_on);
-          dbms_output.put_line('[DEBUGv:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
-        end if;
-  
-        if move_step = '<' or move_step = '+' or move_step='O'then        
-          dbms_output.put_line('[DEBUG<:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
+        elsif move_step = '<' then        
           v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), 0, new_x, new_y, ended_on);
-          dbms_output.put_line('[DEBUG<:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
-        end if;
-  
-        if move_step = '>' or move_step = '+' or move_step='O'then        
-          dbms_output.put_line('[DEBUG>:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
+        elsif move_step = '>' then        
           v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (distance_per_step), 0, new_x, new_y, ended_on);
-          dbms_output.put_line('[DEBUG>:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
-        end if;
-  
-        if move_step = '\' or move_step='O'or move_step = 'X' then        
-          dbms_output.put_line('[DEBUG\:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
+        elsif move_step = '\' then        
           v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (distance_per_step), (distance_per_step), new_x, new_y, ended_on);
-          dbms_output.put_line('[DEBUG\:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
-        end if;
-
-        if move_step = '/' or move_step='O' or move_step = 'X' then        
-          dbms_output.put_line('[DEBUG/:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
+        elsif move_step = '/' then        
           v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), (distance_per_step), new_x, new_y, ended_on);
-          dbms_output.put_line('[DEBUG/:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
-        end if;
-
-        if move_step = 'L' or move_step='O' then    
-          dbms_output.put_line('[DEBUGX:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
+        elsif move_step = 'L' then    
           v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), (-distance_per_step), new_x, new_y, ended_on);
-          dbms_output.put_line('[DEBUGX:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
-        end if;
-        if move_step = 'J' or move_step='O' then    
-          dbms_output.put_line('[DEBUGX:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
+        elsif move_step = 'J' then    
           v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (distance_per_step), (-distance_per_step), new_x, new_y, ended_on);
-          dbms_output.put_line('[DEBUGX:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
         end if;
+        dbms_output.put_line('[DEBUG1:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
       end loop; -- for c
       
       dbms_output.put_line('DEBUG2:ended_on=' || ended_on);      
@@ -241,6 +216,8 @@ create or replace package body         GM_GAME_LIB as
     n_pieces number;
     v_player number;
     v_message varchar2(1000);
+    v_taken_piece_id number;
+    v_taken_piece gm_board_pieces%rowtype;
     v_piece gm_board_pieces%rowtype;
     v_piece_type gm_piece_types%rowtype;
   begin
@@ -258,26 +235,43 @@ create or replace package body         GM_GAME_LIB as
     v_message := 'In game ' || p_game_id || ', player ' || v_piece.player || ' moved ' || v_piece_type.piece_name || ' from ' || v_piece.xpos || ',' || v_piece.ypos || ' to ' || p_xpos || ',' || p_ypos || '.'; 
     gm_chat_lib.say(v_message,'');
     
-    -- Move piece    
-    update gm_board_pieces
-    set status = 0, xpos = 0, ypos = 0
+    -- Capture piece
+    select sum(piece_id)
+    into v_taken_piece_id
+    from gm_board_pieces
     where game_id = p_game_id
       and xpos=p_xpos
       and ypos=p_ypos
       and player <> v_player;
-      -- move piece if not occupied
-      --and not exists (select * from gm_board_pieces where game_id = p_game_id and xpos=p_xpos and ypos=p_ypos and player <> v_player);
 
+    if v_taken_piece_id is not null then
+      
+      select *
+      into v_taken_piece
+      from gm_board_pieces
+      where game_id = p_game_id
+          and piece_id = v_taken_piece_id;
+
+      update gm_board_pieces
+      set status = 0, xpos = 0, ypos = 0
+      where game_id = p_game_id and piece_id = v_taken_piece.piece_id;
+  
+      insert into gm_game_history(game_id,  piece_id,               player,   old_xpos, old_ypos, new_xpos, new_ypos)
+                           values(p_game_id, v_taken_piece.piece_id, v_player, v_taken_piece.xpos, v_piece.ypos, 0, 0);
+    end if;
+
+    -- Move piece
     update gm_board_pieces
     set xpos=p_xpos, ypos=p_ypos
     where game_id = p_game_id
       and piece_id = p_piece_id
-      -- move piece if not occupied
       and not exists (select * from gm_board_pieces where game_id = p_game_id and xpos=p_xpos and ypos=p_ypos);
 
-    update gm_board_pieces set num_moves_made = num_moves_made + 1 where game_id = p_game_id and piece_id = p_piece_id;
-    
-    update gm_games set lastmove_count=lastmove_count+1 where game_id = p_game_id;
+    -- update history table.
+    insert into gm_game_history(game_id,piece_id,player, old_xpos, old_ypos, new_xpos, new_ypos)
+                    values(p_game_id, p_piece_id, v_player, v_piece.xpos, v_piece.ypos, p_xpos, p_ypos);
+  
+
   end;
   
 /*******************************************************************************************/
@@ -286,8 +280,8 @@ create or replace package body         GM_GAME_LIB as
     v_game_id number;
   begin
     select gm_games_seq.nextval into v_game_id from sys.dual;  
-    insert into gm_games(game_id,   player1,  player2,  gamestart_timestamp,  lastmove_timestamp, lastmove_count) 
-                  values(v_game_id, p_player1, p_player2, sysdate, sysdate, 0);
+    insert into gm_games(game_id,   player1,  player2) 
+                  values(v_game_id, p_player1, p_player2);
     
     if p_game_type = 'FISHER' then 
       gm_gamedef_lib.create_board(v_game_id, p_fisher_game);
@@ -295,6 +289,12 @@ create or replace package body         GM_GAME_LIB as
       gm_gamedef_lib.create_board(v_game_id, p_game_type);
     end if;
     
+    -- update history table.
+    insert into gm_game_history(game_id,piece_id,player, old_xpos, old_ypos, new_xpos, new_ypos)
+        select v_game_id, piece_id, -1, null, null, xpos, ypos
+        from gm_board_pieces 
+        where game_id = v_game_id;
+        
     log_message('Created new game ' || v_game_id || ': ' || p_game_type || ' ' || p_fisher_game);
     return v_game_id;
   end new_game;

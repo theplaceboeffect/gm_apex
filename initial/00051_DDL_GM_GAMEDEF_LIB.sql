@@ -45,8 +45,8 @@ create or replace package body GM_GAMEDEF_LIB as
                   where gamedef_code=p_game_name; 
                   
     -- Place board pieces
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, xpos, ypos, player, status, num_moves_made)
-                select p_game_id, piece_type_code, piece_id, xpos, ypos, player, status, 0
+    insert into gm_board_pieces(game_id, piece_type_id, piece_id, xpos, ypos, player, status)
+                select p_game_id, piece_type_code, piece_id, xpos, ypos, player, status
                 from gm_gamedef_pieces
                 where gamedef_code=p_game_name;
 
