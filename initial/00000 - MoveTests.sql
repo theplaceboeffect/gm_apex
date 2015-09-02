@@ -28,17 +28,18 @@ begin
   GM_GenerateMoveTest(1,105,4,6);
   GM_GenerateMoveTest(1,109,4,6);
 end;
-exec  GM_GenerateMoveTest(21,101,4,6);
-exec  GM_GenerateMoveTest(21,102,4,6);
-exec  GM_GenerateMoveTest(21,103,4,6);
-exec  GM_GenerateMoveTest(21,104,4,6);
-exec  GM_GenerateMoveTest(21,105,3,7);
-exec  GM_GenerateMoveTest(4,109,4,3);
-select * from gm_board_pieces where game_id=21;
+exec  GM_GenerateMoveTest(8,101,4,6);
+exec  GM_GenerateMoveTest(8,102,4,6);
 
+exec  GM_GenerateMoveTest(8,103,4,6);
+exec  GM_GenerateMoveTest(8,104,4,6);
+exec  GM_GenerateMoveTest(8,105,3,7);
+exec  GM_GenerateMoveTest(8,109,4,3);
+select * from gm_board_pieces where game_id=8;
+/
 declare x varchar2(1000); 
 begin
-  select gm_game_lib.calc_valid_squares(2, 109)  into x from dual;
+  select gm_game_lib.calc_valid_squares(8, 103)  into x from dual;
 end;
 /
 

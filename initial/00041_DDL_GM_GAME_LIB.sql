@@ -125,8 +125,9 @@ create or replace package body         GM_GAME_LIB as
     -- Current position is also valid!
     v_positions := 'loc-' || v_piece.xpos || '-' || v_piece.ypos;
     
-    v_directions_allowed := case  when v_piece_type.directions_allowed = '+' then '^:v:<:>'
-                             when v_piece_type.directions_allowed = 'x' then '\:/:L:J'
+    v_directions_allowed := case  
+                             when v_piece_type.directions_allowed = '+' then '^:v:<:>'
+                             when v_piece_type.directions_allowed = 'X' then '\:/:L:J'
                              when v_piece_type.directions_allowed = 'O' then '^:v:<:>:\:/:L:J'
                              else
                                 v_piece_type.directions_allowed
@@ -189,7 +190,7 @@ create or replace package body         GM_GAME_LIB as
           v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), (-distance_per_step), new_x, new_y, ended_on);
           dbms_output.put_line('[DEBUGX:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
         end if;
-        if move_step = 'X' or move_step='O' then    
+        if move_step = 'J' or move_step='O' then    
           dbms_output.put_line('[DEBUGX:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
           v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (distance_per_step), (-distance_per_step), new_x, new_y, ended_on);
           dbms_output.put_line('[DEBUGX:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
