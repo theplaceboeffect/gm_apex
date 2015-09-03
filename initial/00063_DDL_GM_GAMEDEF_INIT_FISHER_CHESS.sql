@@ -1029,7 +1029,7 @@ begin
         
     -- define each pice
     insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions ) 
-                                        values(fisher_game_code, 'PAWN', 'pawn', CANNOT_JUMP,  1, '^^', '^:\:/','\/', '^');
+                                        values(fisher_game_code, 'PAWN', 'pawn', CANNOT_JUMP,  1, '^^:^: \:/','^:\:/','\/', '^');
     insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions  ) 
                                         values(fisher_game_code, 'BISHOP', 'bishop', CANNOT_JUMP, 0, null, 'X',null, null);
     insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions  ) 
