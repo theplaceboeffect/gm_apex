@@ -50,3 +50,5 @@ x varchar2(100);
 begin
  x := gm_game_lib.calc_valid_squares(8,107);
 end;
+
+select * from gm_game_history order by history_id desc;

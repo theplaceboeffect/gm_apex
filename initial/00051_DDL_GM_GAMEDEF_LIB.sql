@@ -37,10 +37,8 @@ create or replace package body GM_GAMEDEF_LIB as
     order by ypos;
     
     -- Initialize the pieces
-
-    --/* Local SVG
-    insert into gm_piece_types(game_id,piece_type_id, piece_name, can_jump, n_steps_per_move, first_move, directions_allowed) 
-                  select p_game_id, piece_type_code, piece_name, can_jump, n_steps_per_move, first_move, directions_allowed 
+    insert into gm_piece_types(game_id,piece_type_id, piece_name, can_jump, n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions) 
+                  select p_game_id, piece_type_code, piece_name, can_jump, n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions 
                   from gm_gamedef_piece_types
                   where gamedef_code=p_game_name; 
                   

@@ -36,18 +36,18 @@ begin
   end loop;
     
     -- define each pice
-    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed ) 
-                                        values('CHESS', 'PAWN', 'pawn', CANNOT_JUMP,  1, '^^:^', '^');
-    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed ) 
-                                        values('CHESS', 'BISHOP', 'bishop', CANNOT_JUMP, 0, null, 'X');
-    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed ) 
-                                        values('CHESS', 'KNIGHT', 'knight', CAN_JUMP, 1, null, '^^>:^^<:vv<:vv>:>>^:>>v:<<^:<<v');
-    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed ) 
-                                        values('CHESS', 'ROOK', 'rook',  CANNOT_JUMP, 0, null, '+');
-    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed ) 
-                                        values('CHESS', 'QUEEN', 'queen', CANNOT_JUMP, 0, null, 'O');
-    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed ) 
-                                        values('CHESS', 'KING', 'king', CANNOT_JUMP, 1, null, 'O');
+    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions ) 
+                                        values('CHESS', 'PAWN', 'pawn', CANNOT_JUMP,  1, '^^', '^:\:/','\/', '^');
+    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions  ) 
+                                        values('CHESS', 'BISHOP', 'bishop', CANNOT_JUMP, 0, null, 'X',null, null);
+    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions  ) 
+                                        values('CHESS', 'KNIGHT', 'knight', CAN_JUMP, 1, null, '^^>:^^<:vv<:vv>:>>^:>>v:<<^:<<v', null, null);
+    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions  ) 
+                                        values('CHESS', 'ROOK', 'rook',  CANNOT_JUMP, 0, null, '+', null, null);
+    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions  ) 
+                                        values('CHESS', 'QUEEN', 'queen', CANNOT_JUMP, 0, null, 'O', null, null);
+    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions  ) 
+                                        values('CHESS', 'KING', 'king', CANNOT_JUMP, 1, null, 'O', null, null);
 
   -- define piece locations
   -- Place white pieces

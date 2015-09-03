@@ -67,8 +67,10 @@ create table gm_piece_types
   piece_name varchar2(50),
   n_steps_per_move number,
   can_jump number,
-  first_move varchar2(100),
-  directions_allowed varchar2(100),
+  first_move varchar2(50),
+  directions_allowed varchar2(50),
+  capture_directions varchar2(50),
+  move_directions varchar2(50),
   
   constraint piece_types_id_pk primary key (game_id, piece_type_id),
   constraint piece_types_game_id_fk foreign key (game_id) references gm_games(game_id)

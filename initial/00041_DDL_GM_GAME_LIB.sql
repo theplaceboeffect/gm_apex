@@ -1,6 +1,6 @@
 create or replace package GM_GAME_LIB as
 
-  function move_in_direction( p_piece gm_board_pieces%rowtype, p_piece_type gm_piece_types%rowtype, p_max_distance_per_move number,p_x_steps number, p_y_steps number, new_xpos in out number, new_ypos in out number, ended_on out nvarchar2) return nvarchar2;
+  function move_in_direction( move_step char, p_piece gm_board_pieces%rowtype, p_piece_type gm_piece_types%rowtype, p_max_distance_per_move number,p_x_steps number, p_y_steps number, new_xpos in out number, new_ypos in out number, ended_on out nvarchar2) return nvarchar2;
   function calc_valid_squares(p_game_id number, p_piece_id number) return varchar2;
   function format_piece(game_id number, piece_id number, player_number number, piece_name nvarchar2, p_xpos number, p_ypos number) return nvarchar2;
 
@@ -13,7 +13,7 @@ end GM_GAME_LIB;
 create or replace package body         GM_GAME_LIB as
 
   -- *****************************************************************************
-  function move_in_direction( p_piece gm_board_pieces%rowtype, p_piece_type gm_piece_types%rowtype, p_max_distance_per_move number,p_x_steps number, p_y_steps number, new_xpos in out number, new_ypos in out number, ended_on out nvarchar2) return nvarchar2
+  function move_in_direction( move_step char, p_piece gm_board_pieces%rowtype, p_piece_type gm_piece_types%rowtype, p_max_distance_per_move number,p_x_steps number, p_y_steps number, new_xpos in out number, new_ypos in out number, ended_on out nvarchar2) return nvarchar2
   as
     new_position varchar2(100);
     return_positions varchar2(2000);
@@ -37,15 +37,23 @@ create or replace package body         GM_GAME_LIB as
           stop_moving := true;
           dbms_output.put_line('  Returning: landed on edge @ '|| new_xpos || ',' || new_ypos);
         else
-          select count(*) into n from gm_board_pieces where game_id=p_piece.game_id and xpos=new_xpos and ypos=new_ypos;
+          select max(player) into n from gm_board_pieces where game_id=p_piece.game_id and xpos=new_xpos and ypos=new_ypos;
           -- occupied
-          if  (n <> 0) then
-            select player into n from gm_board_pieces where game_id=p_piece.game_id and xpos=new_xpos and ypos=new_ypos;
+          if  (n is not null) then
+            --select player into n from gm_board_pieces where game_id=p_piece.game_id and xpos=new_xpos and ypos=new_ypos;
             stop_moving := true;
             -- occupied by another player's piece ** TODO: Check for capture direction **
             if n <> p_piece.player then
+            dbms_output.put_line('test capture:' || move_step || '-' || p_piece_type.capture_directions || ' test=' || instr(move_step, nvl(p_piece_type.capture_directions,move_step)));
+              if instr(move_step, nvl(p_piece_type.capture_directions,move_step)) > 0 then
+                dbms_output.put_line('allow capture');
                 new_position:= ':loc-' || new_xpos || '-' || new_ypos || ':';
                 ended_on:='nme';
+              else
+                apex_debug_message.log_message('disallow capture',true,1);
+                new_position:='';
+                ended_on:='own';
+              end if;
             else
                 new_position:='';
                 ended_on:='own';
@@ -54,8 +62,16 @@ create or replace package body         GM_GAME_LIB as
             stop_moving := true;
           else
             ended_on:='';
-            -- not occupied.
-            new_position := ':loc-' || new_xpos || '-' || new_ypos;
+            -- not occupied - make sure that this is a location we can move into.
+            if p_piece.piece_id = 213 then dbms_output.put_line('test move:' || move_step || '-' || p_piece_type.move_directions); end if;
+            if instr(move_step, nvl(p_piece_type.move_directions,move_step)) > 0 then
+                if p_piece.piece_id = 213 then  dbms_output.put_line('allow move'); end if;
+                new_position := ':loc-' || new_xpos || '-' || new_ypos;
+            else
+                if p_piece.piece_id = 213 then dbms_output.put_line('disallow move'); end if;
+                new_position:='';
+                stop_moving := true;
+            end if;
           end if; -- if occupied
         end if; -- in bounds;
         
@@ -133,7 +149,8 @@ create or replace package body         GM_GAME_LIB as
                              else
                                 v_piece_type.directions_allowed
                         end; 
-    select count(*) into n_moves_made_by_piece from gm_game_history where game_id=p_game_id and piece_id=p_piece_id;
+    select count(*) into n_moves_made_by_piece from gm_game_history where game_id=p_game_id and piece_id=p_piece_id and player > 0;
+    
     if n_moves_made_by_piece = 0 and v_piece_type.first_move is not null then
       v_move_choices := apex_util.string_to_table(v_piece_type.first_move,':');
       dbms_output.put_line('---> Number of choices: ' || v_move_choices.count || ' from "' || v_piece_type.first_move || '"' );
@@ -153,21 +170,21 @@ create or replace package body         GM_GAME_LIB as
         
         dbms_output.put_line('[DEBUG1:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
         if move_step = '^' then
-          v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, 0, distance_per_step, new_x, new_y, ended_on);
+          v_positions := v_positions || move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, 0, distance_per_step, new_x, new_y, ended_on);
         elsif move_step = 'v'then        
-          v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, 0, (-distance_per_step), new_x, new_y, ended_on);
+          v_positions := v_positions || move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, 0, (-distance_per_step), new_x, new_y, ended_on);
         elsif move_step = '<' then        
-          v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), 0, new_x, new_y, ended_on);
+          v_positions := v_positions || move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), 0, new_x, new_y, ended_on);
         elsif move_step = '>' then        
-          v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (distance_per_step), 0, new_x, new_y, ended_on);
+          v_positions := v_positions || move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (distance_per_step), 0, new_x, new_y, ended_on);
         elsif move_step = '\' then        
-          v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (distance_per_step), (distance_per_step), new_x, new_y, ended_on);
+          v_positions := v_positions || move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (distance_per_step), (distance_per_step), new_x, new_y, ended_on);
         elsif move_step = '/' then        
-          v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), (distance_per_step), new_x, new_y, ended_on);
+          v_positions := v_positions || move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), (distance_per_step), new_x, new_y, ended_on);
         elsif move_step = 'L' then    
-          v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), (-distance_per_step), new_x, new_y, ended_on);
+          v_positions := v_positions || move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), (-distance_per_step), new_x, new_y, ended_on);
         elsif move_step = 'J' then    
-          v_positions := v_positions || move_in_direction(v_piece, v_piece_type, max_distance_per_move, (distance_per_step), (-distance_per_step), new_x, new_y, ended_on);
+          v_positions := v_positions || move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (distance_per_step), (-distance_per_step), new_x, new_y, ended_on);
         end if;
         dbms_output.put_line('[DEBUG1:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
       end loop; -- for c
