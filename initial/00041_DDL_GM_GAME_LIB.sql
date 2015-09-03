@@ -1,3 +1,4 @@
+/**** GM_GAME_LIB ****/
 create or replace package GM_GAME_LIB as
 
   function move_in_direction( move_step char, p_piece gm_board_pieces%rowtype, p_piece_type gm_piece_types%rowtype, p_max_distance_per_move number,p_x_steps number, p_y_steps number, new_xpos in out number, new_ypos in out number, ended_on out nvarchar2) return nvarchar2;
@@ -12,7 +13,7 @@ end GM_GAME_LIB;
 /
 create or replace package body         GM_GAME_LIB as
 
-  -- *****************************************************************************
+  /*********************************************************************************************************************/
   function move_in_direction( move_step char, p_piece gm_board_pieces%rowtype, p_piece_type gm_piece_types%rowtype, p_max_distance_per_move number,p_x_steps number, p_y_steps number, new_xpos in out number, new_ypos in out number, ended_on out nvarchar2) return nvarchar2
   as
     new_position varchar2(100);
@@ -44,8 +45,8 @@ create or replace package body         GM_GAME_LIB as
             stop_moving := true;
             -- occupied by another player's piece ** TODO: Check for capture direction **
             if n <> p_piece.player then
-            dbms_output.put_line('test capture:' || move_step || '-' || p_piece_type.capture_directions || ' test=' || instr(move_step, nvl(p_piece_type.capture_directions,move_step)));
-              if instr(move_step, nvl(p_piece_type.capture_directions,move_step)) > 0 then
+            dbms_output.put_line('test capture:' || move_step || '-' || p_piece_type.capture_directions || ' test=' || instr(nvl(p_piece_type.capture_directions,move_step),move_step));
+              if instr(nvl(p_piece_type.capture_directions,move_step),move_step) > 0 then
                 dbms_output.put_line('allow capture');
                 new_position:= ':loc-' || new_xpos || '-' || new_ypos || ':';
                 ended_on:='nme';
@@ -64,7 +65,7 @@ create or replace package body         GM_GAME_LIB as
             ended_on:='';
             -- not occupied - make sure that this is a location we can move into.
             if p_piece.piece_id = 213 then dbms_output.put_line('test move:' || move_step || '-' || p_piece_type.move_directions); end if;
-            if instr(move_step, nvl(p_piece_type.move_directions,move_step)) > 0 then
+            if instr(nvl(p_piece_type.move_directions,move_step),move_step) > 0 then
                 if p_piece.piece_id = 213 then  dbms_output.put_line('allow move'); end if;
                 new_position := ':loc-' || new_xpos || '-' || new_ypos;
             else
@@ -92,6 +93,7 @@ create or replace package body         GM_GAME_LIB as
   
     return return_positions;
   end move_in_direction;
+
 
   /*********************************************************************************************************************/
   function calc_valid_squares(p_game_id number, p_piece_id number) return varchar2
@@ -203,7 +205,7 @@ create or replace package body         GM_GAME_LIB as
   
     return v_positions;
   end calc_valid_squares;
-  
+
   /*********************************************************************************************************************/
   function format_piece(game_id number, piece_id number, player_number number, piece_name nvarchar2, p_xpos number, p_ypos number) return nvarchar2 as
   begin
@@ -290,7 +292,7 @@ create or replace package body         GM_GAME_LIB as
   
 
   end;
-  
+
 /*******************************************************************************************/
   function new_game(p_player1 varchar2, p_player2 varchar2, p_game_type varchar2, p_fisher_game varchar2) return number
   as
@@ -357,3 +359,4 @@ create or replace package body         GM_GAME_LIB as
   end output_board_config;
 
 end GM_GAME_LIB;
+/

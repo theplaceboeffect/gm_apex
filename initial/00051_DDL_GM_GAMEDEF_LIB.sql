@@ -1,6 +1,5 @@
-alter session set current_schema=apex_gm;
+/**** GM_GAMEDEF_LIB ****/
 
-/
 /*********************************************************************************************************************/
 create or replace package GM_GAMEDEF_LIB as
   procedure create_board(p_game_id number, p_game_name varchar2);  
@@ -51,3 +50,4 @@ create or replace package body GM_GAMEDEF_LIB as
   end create_board;
 
 end GM_GAMEDEF_LIB;
+/

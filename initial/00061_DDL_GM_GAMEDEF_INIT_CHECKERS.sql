@@ -1,6 +1,3 @@
-alter session set current_schema=apex_gm
-/
-
 /*********************************************************************************************************************/
 /* Create CHECKERS */
 create or replace procedure gm_gamedef_mk_checkers as

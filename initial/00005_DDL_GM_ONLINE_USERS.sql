@@ -1,8 +1,7 @@
-alter session set current_schema=apex_gm;
-/*
+/**** GM_ONLINE_USERS ****/
 drop table gm_online_users;
 drop sequence gm_online_users_seq;
-*/
+/
 
 CREATE TABLE  "GM_ONLINE_USERS" 
    (	"ONLINE_USER_ID" NUMBER, 

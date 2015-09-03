@@ -1,5 +1,4 @@
---alter session set current_schema=apex_gm;
-
+/**** GM_BOARD_VIEW ****/
 CREATE OR REPLACE FORCE VIEW gm_board_view as
   with pieces as (
         select  P.game_id ,
@@ -85,3 +84,4 @@ create or replace view gm_board_css as
   )
   order by display_order
   ;
+/

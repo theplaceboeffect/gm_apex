@@ -1,8 +1,8 @@
-alter session set current_schema=apex_gm;
-/*
+/**** GM_CHAT_SCHEMA ****/
+
 drop table GM_CHAT;
 drop sequence GM_CHAT_seq;
-*/
+/
 
 CREATE TABLE  GM_CHAT 
 (	

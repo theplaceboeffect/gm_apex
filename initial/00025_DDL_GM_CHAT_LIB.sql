@@ -1,4 +1,4 @@
- alter session set current_schema=apex_gm;
+/**** GM_CHAT_LIB ****/
 
 create or replace package GM_CHAT_LIB as
 
@@ -15,3 +15,4 @@ create or replace package body GM_CHAT_LIB as
   end say;
   
 end GM_CHAT_LIB;
+/

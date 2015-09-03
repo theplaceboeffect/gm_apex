@@ -1,3 +1,4 @@
+/**** GM_CARDS_SCHEMA ****/
 
 drop table GM_BOARD_CARDS;
 drop table GM_GAMEDEF_CARDS;
@@ -51,9 +52,9 @@ create or replace view gm_board_cards_view as
 select * from gm_board_cards_view;
 /
 insert into gm_gamedef_cards(gamedef_card_code, gamedef_code, used_for_class, used_for_detail, card_name, card_description) values('PAWN1', 'CHESS%', 'PIECE','PAWN', 'Pawn 2 Steps', 'Your pawns can move up to two squares.');
-insert into gm_gamedef_cards(gamedef_card_code, gamedef_code, used_for_class, used_for_detail, card_name, card_description) values('PAWN2', 'CHESS%', 'PIECE','PAWN', 'Pawn 2 Steps', 'Your pawns can move up to two squares.');
-insert into gm_gamedef_cards(gamedef_card_code, gamedef_code, used_for_class, used_for_detail, card_name, card_description) values('PAWN3', 'CHESS%', 'PIECE','PAWN', 'Pawn 2 Steps', 'Your pawns can move up to two squares.');
-insert into gm_gamedef_cards(gamedef_card_code, gamedef_code, used_for_class, used_for_detail, card_name, card_description) values('PAWN4', 'CHESS%', 'PIECE','PAWN', 'Pawn 2 Steps', 'Your pawns can move up to two squares.');
+insert into gm_gamedef_cards(gamedef_card_code, gamedef_code, used_for_class, used_for_detail, card_name, card_description) values('PAWN2', 'CHESS%', 'PIECE','PAWN', 'Pawn 3 Steps', 'Your pawns can move up to three squares.');
+insert into gm_gamedef_cards(gamedef_card_code, gamedef_code, used_for_class, used_for_detail, card_name, card_description) values('PAWN-1', 'CHESS%', 'PIECE','PAWN', 'Pawn -1 Steps', 'Your pawns can move backwards squares.');
+insert into gm_gamedef_cards(gamedef_card_code, gamedef_code, used_for_class, used_for_detail, card_name, card_description) values('PAWN-2', 'CHESS%', 'PIECE','PAWN', 'Pawn -2 Steps', 'Your pawns can move up to two squares backwards.');
 insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(7, 1, 1, 'PAWN1');
 insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(7, 2, 1, 'PAWN2');
 insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(7, 3, 1, 'PAWN2');
@@ -63,7 +64,7 @@ insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(7
 insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(7, 7, 1, 'PAWN2');
 insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(7, 8, 2, 'PAWN3');
 insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(7, 9, null, 'PAWN4');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(7, 10, null, 'PAWN5');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(7, 10, null, 'PAWN4');
 
 commit;
 

@@ -1,4 +1,4 @@
-alter session set current_schema=apex_gm;
+/*** GM_GAMEDEF_SCHEMA ***/
 drop table gm_gamedef_pieces;
 drop table gm_gamedef_piece_types;
 drop table gm_gamedef_css;
