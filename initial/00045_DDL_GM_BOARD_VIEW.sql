@@ -74,6 +74,8 @@ create or replace view gm_board_css as
     union all
     select '.game-piece {height:' || v('P1_SQUARE_SIZE') || 'px;width:' || v('P1_SQUARE_SIZE') || 'px;background-size: ' || v('P1_SQUARE_SIZE') || 'px ' || v('P1_SQUARE_SIZE') || 'px;}' css, 10 display_order from dual
     union all
+    select '.history-piece {height:25px;width:25px;background-size: 25px 25px;}' css, 10 display_order from dual
+    union all
     -- GameDef CSS
     select css_selector || ' ' || css_definition board_css, css_order display_order
     from gm_gamedef_css where gamedef_code=(select board_type from gm_boards where game_id=v('P1_GAME_ID'))
@@ -85,3 +87,15 @@ create or replace view gm_board_css as
   order by display_order
   ;
 /
+
+create or replace view gm_board_history_view as
+  select H.history_id
+          , H.game_id
+          , H.piece_id
+          , '<div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || H.player || '" piece-name="' || lower(P.piece_type_id) || '"/>' piece
+          , H.player
+          , '(' || H.old_xpos || ',' || H.old_ypos || ')' old_pos
+          , '(' || H.new_xpos || ',' || H.new_ypos || ')' new_pos
+          , GM_UTIL.time_ago(H.move_time) move_time
+  from gm_game_history H
+  left join gm_board_pieces P on H.piece_id = P.piece_id and H.game_id = P.game_id;

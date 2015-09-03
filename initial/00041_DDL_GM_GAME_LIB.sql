@@ -53,7 +53,7 @@ create or replace package body         GM_GAME_LIB as
               else
                 apex_debug_message.log_message('disallow capture',true,1);
                 new_position:='';
-                ended_on:='own';
+                ended_on:='xcap';
               end if;
             else
                 new_position:='';
@@ -64,13 +64,14 @@ create or replace package body         GM_GAME_LIB as
           else
             ended_on:='';
             -- not occupied - make sure that this is a location we can move into.
-            if p_piece.piece_id = 213 then dbms_output.put_line('test move:' || move_step || '-' || p_piece_type.move_directions); end if;
+            if p_piece.piece_id = 214 then dbms_output.put_line('test move:' || move_step || '-' || p_piece_type.move_directions || 'test=' || instr(nvl(p_piece_type.move_directions,move_step),move_step)); end if;
             if instr(nvl(p_piece_type.move_directions,move_step),move_step) > 0 then
-                if p_piece.piece_id = 213 then  dbms_output.put_line('allow move'); end if;
+                if p_piece.piece_id = 214 then  dbms_output.put_line('allow move'); end if;
                 new_position := ':loc-' || new_xpos || '-' || new_ypos;
             else
-                if p_piece.piece_id = 213 then dbms_output.put_line('disallow move'); end if;
+                if p_piece.piece_id = 214 then dbms_output.put_line('disallow move'); end if;
                 new_position:='';
+                ended_on := 'xmove';
                 stop_moving := true;
             end if;
           end if; -- if occupied
@@ -90,7 +91,7 @@ create or replace package body         GM_GAME_LIB as
         dbms_output.put_line('  NewLoc: @ '|| new_xpos || ',' || new_ypos);
       end if;
     end loop; 
-  
+    dbms_output.put_line('RETURNING: ' || return_positions);
     return return_positions;
   end move_in_direction;
 
@@ -172,23 +173,24 @@ create or replace package body         GM_GAME_LIB as
         
         dbms_output.put_line('[DEBUG1:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
         if move_step = '^' then
-          v_positions := v_positions || move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, 0, distance_per_step, new_x, new_y, ended_on);
+          next_position :=  move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, 0, distance_per_step, new_x, new_y, ended_on);
         elsif move_step = 'v'then        
-          v_positions := v_positions || move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, 0, (-distance_per_step), new_x, new_y, ended_on);
+          next_position :=  move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, 0, (-distance_per_step), new_x, new_y, ended_on);
         elsif move_step = '<' then        
-          v_positions := v_positions || move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), 0, new_x, new_y, ended_on);
+          next_position :=  move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), 0, new_x, new_y, ended_on);
         elsif move_step = '>' then        
-          v_positions := v_positions || move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (distance_per_step), 0, new_x, new_y, ended_on);
+          next_position :=  move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (distance_per_step), 0, new_x, new_y, ended_on);
         elsif move_step = '\' then        
-          v_positions := v_positions || move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (distance_per_step), (distance_per_step), new_x, new_y, ended_on);
+          next_position :=  move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (distance_per_step), (distance_per_step), new_x, new_y, ended_on);
         elsif move_step = '/' then        
-          v_positions := v_positions || move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), (distance_per_step), new_x, new_y, ended_on);
+          next_position :=  move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), (distance_per_step), new_x, new_y, ended_on);
         elsif move_step = 'L' then    
-          v_positions := v_positions || move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), (-distance_per_step), new_x, new_y, ended_on);
+          next_position :=  move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), (-distance_per_step), new_x, new_y, ended_on);
         elsif move_step = 'J' then    
-          v_positions := v_positions || move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (distance_per_step), (-distance_per_step), new_x, new_y, ended_on);
+          next_position :=  move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (distance_per_step), (-distance_per_step), new_x, new_y, ended_on);
         end if;
-        dbms_output.put_line('[DEBUG1:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
+        v_positions := v_positions || next_position;
+        dbms_output.put_line('[DEBUG1:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' added=' || next_position || ' ended_on=' || ended_on);
       end loop; -- for c
       
       dbms_output.put_line('DEBUG2:ended_on=' || ended_on);      
