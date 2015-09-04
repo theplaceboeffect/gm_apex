@@ -91,11 +91,22 @@ create or replace view gm_board_css as
 create or replace view gm_board_history_view as
   select H.history_id
           , H.game_id
-          , H.piece_id
-          , '<div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || H.player || '" piece-name="' || lower(P.piece_type_id) || '"/>' piece
-          , H.player
-          , '(' || H.old_xpos || ',' || H.old_ypos || ')' old_pos
-          , '(' || H.new_xpos || ',' || H.new_ypos || ')' new_pos
+          --, H.piece_id
+          , '<table><tr><td><div class="history-piece" id="Hpiece-' || H.piece_id || 
+            '" player="' || P.player || '" piece-name="' || lower(P.piece_type_id) || '"</td></tr><td>' 
+            || H.old_xpos || '-' || H.old_ypos || ' ' || H.new_xpos || '-' || H.new_ypos || '</tr></table>'
+            piece
           , GM_UTIL.time_ago(H.move_time) move_time
   from gm_game_history H
-  left join gm_board_pieces P on H.piece_id = P.piece_id and H.game_id = P.game_id;
+  left join gm_board_pieces P on H.piece_id = P.piece_id and H.game_id = P.game_id
+  where H.player > 0;
+  
+  
+  
+  select * from gm_board_pieces;
+  select * from gm_board_history_view;
+  
+  select *
+from gm_board_history_view 
+where game_id = :P1_GAME_ID
+order by history_id desc;
