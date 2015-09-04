@@ -93,14 +93,14 @@ create or replace view gm_board_history_view as
           , H.game_id
           --, H.piece_id
           , '<table><tr><td><div class="history-piece" id="Hpiece-' || H.piece_id || 
-            '" player="' || P.player || '" piece-name="' || lower(P.piece_type_id) || '"</td></tr><td>' 
-            || H.old_xpos || '-' || H.old_ypos || ' ' || H.new_xpos || '-' || H.new_ypos || '</tr></table>'
+            '" player="' || P.player || '" piece-name="' || lower(P.piece_type_id) || '"</td><td>' 
+            || chr(96 + H.old_xpos)|| H.old_ypos || '-' || chr(96 + H.new_xpos) || H.new_ypos || '</td></tr></table>'
             piece
           , GM_UTIL.time_ago(H.move_time) move_time
   from gm_game_history H
   left join gm_board_pieces P on H.piece_id = P.piece_id and H.game_id = P.game_id
   where H.player > 0;
-  
+  /
   
   
   select * from gm_board_pieces;
