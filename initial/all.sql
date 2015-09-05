@@ -1,60 +1,3 @@
-alter session set current_schema=apex_gm;
-
-create or replace procedure GM_GenerateMoveTest(p_game_id number, p_piece_id number, p_xpos number, p_ypos number) as
-v_moves varchar(4000);
-v_piece_type gm_piece_types%rowtype;
-begin
-  update gm_board_pieces set status=0 ,xpos=0, ypos=0 where game_id=p_game_id;
-  update gm_board_pieces set status=1, xpos=p_xpos, ypos=p_ypos where game_id=p_game_id and piece_id=p_piece_id;
-  
-  select gm_game_lib.calc_valid_squares(p_game_id, p_piece_id) into v_moves from dual;
-  
-  select * into v_piece_type 
-  from gm_piece_types 
-  where game_id = p_game_id and piece_type_id = (select piece_type_id from gm_board_pieces where game_id=p_game_id and piece_id=p_piece_id);
-  commit;
-  dbms_output.put_line('Moves for ' || v_piece_type.piece_name || '(' || v_piece_type.directions_allowed || ') on ' || p_xpos || ',' || p_ypos || ':' || v_moves);
-end;
-/
-commit;
-select gm_game_lib.gm_calc_valid_squares(1, 101) from dual;
-select * from gm_board_pieces where game_id=3;
-begin
-
-  GM_GenerateMoveTest(1,101,4,6);
-  GM_GenerateMoveTest(1,102,4,6);
-  GM_GenerateMoveTest(1,103,4,6);
-  GM_GenerateMoveTest(1,104,4,6);
-  GM_GenerateMoveTest(1,105,4,6);
-  GM_GenerateMoveTest(1,109,4,6);
-end;
-exec  GM_GenerateMoveTest(8,101,4,6);
-exec  GM_GenerateMoveTest(8,102,4,6);
-
-exec  GM_GenerateMoveTest(8,103,4,6);
-exec  GM_GenerateMoveTest(8,104,4,6);
-exec  GM_GenerateMoveTest(8,105,3,7);
-exec  GM_GenerateMoveTest(8,109,4,3);
-select * from gm_board_pieces where game_id=8;
-/
-declare x varchar2(1000); 
-begin
-  select gm_game_lib.calc_valid_squares(8, 103)  into x from dual;
-  dbms_output.put_line(x);
-end;
-/
-
-select * from gm_games;
-/
-declare
-x varchar2(100);
-begin
- x := gm_game_lib.calc_valid_squares(2,113);
- dbms_output.put_line(x);
-end;
-/
-select * from gm_game_history order by history_id desc;
-
 /**** DDL_UTIL ****/
 
 create or replace package GM_UTIL as
@@ -66,18 +9,51 @@ create or replace package body GM_UTIL as
   n number;
   s varchar(10);
   begin
-    n := round((sysdate - dt)*1440);
-    s := 'mins';
+    n := round(sysdate - dt) * 24;
+    s := 'hrs';
     
-    if n = 0 then
-      n:=round((sysdate - dt)*18400);
-      s:= 'secs';
+    if n = 0 then 
+      n := round((sysdate - dt)*1440);
+      s := 'mins';
+    
+      if n = 0 then
+        n:=round((sysdate - dt)*18400);
+        s:= 'secs';
+      end if;
     end if;
     
     return n || ' ' || s || ' ago.';
     
   end time_ago;
 end GM_UTIL;
+/
+/**** DDL_LOG ****/
+
+drop table log_data;
+drop sequence log_sequence;
+drop procedure log_message;
+/
+create table log_data ( id number, t timestamp, message nvarchar2(1000));
+create sequence log_sequence;
+/
+set define off
+create or replace trigger bi_log
+before insert on log_data
+for each row
+begin
+  if :new.id is null then
+    select log_sequence.nextval into :new.id from dual;
+  end if;
+  
+  select current_timestamp into :new.t from dual;
+end;
+/
+create or replace procedure log_message(p_message nvarchar2) as
+begin
+  insert into log_data(message) values(p_message);
+end;
+/
+create or replace view l as select * from log_data order by id desc;
 /
 /**** GM_GAME_SCHEMA ****/
 
@@ -292,6 +268,7 @@ CREATE TABLE  "GM_ONLINE_USERS"
    (	"ONLINE_USER_ID" NUMBER, 
 	"USERNAME" NVARCHAR2(50), 
   user_icon varchar2(1000),
+  ipaddress varchar2(20),
 	"LOGIN_TIMESTAMP" date, 
 	"LAST_PING_TIMESTAMP" date, 
 	"SESSION_ID" NUMBER, 
@@ -346,34 +323,6 @@ create or replace view gm_current_games_view as
           ||'Last Move ' || lastmove_count || ' made ' || lastmove_timestamp || '.'
           gameinfo
   from x;
-/**** DDL_LOG ****/
-
-drop table log_data;
-drop sequence log_sequence;
-drop procedure log_message;
-/
-create table log_data ( id number, t timestamp, message nvarchar2(1000));
-create sequence log_sequence;
-/
-set define off
-create or replace trigger bi_log
-before insert on log_data
-for each row
-begin
-  if :new.id is null then
-    select log_sequence.nextval into :new.id from dual;
-  end if;
-  
-  select current_timestamp into :new.t from dual;
-end;
-/
-create or replace procedure log_message(p_message nvarchar2) as
-begin
-  insert into log_data(message) values(p_message);
-end;
-/
-create or replace view l as select * from log_data order by id desc;
-/
 /**** GM_CHAT_SCHEMA ****/
 
 drop table GM_CHAT;
@@ -427,7 +376,7 @@ create table GM_GAMEDEF_CARDS
   
   jquery_code varchar2(1000),
   css_code    varchar2(1000),
-  sql_code    varchar2(1000)
+  sql_code    varchar2(1000),
   
   constraint gm_gd_cards_pk primary key (gamedef_card_code)
   --constraint gm_gd_cards_game_fk foreign key(gamedef_code) references gm_gamedef_boards(gamedef_code)
@@ -458,6 +407,8 @@ create or replace view gm_board_cards_view as
   join gm_gamedef_cards CD on C.gamedef_card_code = CD.gamedef_card_code
 
 /
+
+/*
 delete from gm_board_cards;
 delete from gm_gamedef_cards;
 insert into gm_gamedef_cards(gamedef_card_code, gamedef_code, used_for_class, used_for_detail, card_name, card_description) values('PAWN1', 'CHESS%', 'PIECE','PAWN', 'Pawn 2 Steps', 'Your pawns can move up to two squares.');
@@ -477,7 +428,89 @@ insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1
 insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 2, 0, 'PAWN2');
 insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 3, 0, 'PAWN2');
 commit;
-//**** GM_CHAT_LIB ****/
+/
+
+
+*/
+alter session set current_schema=apex_gm;
+
+create or replace package GM_LOGIN_LIB as
+
+  function login return nvarchar2;
+  procedure ping;
+  function username return varchar2;
+
+end;
+
+/
+create or replace package body GM_LOGIN_LIB as
+
+    function login return nvarchar2 as
+        v_username varchar2(50);
+        v_ipaddress varchar2(20);
+    begin
+        if v('APP_USER') = 'APEX_PUBLIC_USER' then
+            v_username := 'ANON' || v('APP_SESSION');
+        else
+            v_username := v('APP_USER');
+        end if;
+
+        IF OWA.num_cgi_vars IS NOT NULL
+        THEN
+          -- PL/SQL gateway connection (WEB client)
+          v_ipaddress := OWA_UTIL.get_cgi_env ('REMOTE_ADDR');
+        ELSE
+          -- Direct connection over tcp/ip network
+          v_ipaddress := SYS_CONTEXT ('USERENV', 'IP_ADDRESS');
+        END IF;
+
+        merge into GM_ONLINE_USERS a
+        using (select v_username username, 
+                      v('APP_SESSION') session_id, 
+                      sysdate login_timestamp, 
+                      sysdate last_ping_timestamp 
+                from dual) b
+        on (a.username = b.username)
+        when matched then
+        update set
+            a.session_id = b.session_id,
+            a.login_timestamp = b.login_timestamp,
+            a.last_ping_timestamp = b.login_timestamp,
+            a.ipaddress = v_ipaddress
+        when not matched then
+            insert (username, session_id, login_timestamp, last_ping_timestamp, ipaddress)
+            values (b.username, b.session_id, b.login_timestamp, b.last_ping_timestamp, v_ipaddress);
+        
+        if apex_collection.collection_exists('GM_STATE') then
+            apex_collection.delete_collection('GM_STATE');
+        end if;
+
+        apex_collection.create_or_truncate_collection ('GM_STATE');
+        apex_collection.add_member (p_collection_name      => 'GM_STATE',
+                                    p_generate_md5         => 'NO',
+                                    p_c001                 => 'username',
+                                    p_c002                 => v_username
+                                   );
+        return v_username;
+    end login;
+    
+    procedure ping as
+        v_username nvarchar2(50);
+    begin
+        select c002 into v_username from apex_collections where collection_name='GM_STATE' and c001='username';
+        update GM_ONLINE_USERS set last_ping_timestamp = current_timestamp where username=v_username;
+    end ping;
+
+    function username return varchar2 as
+    v_username varchar2(30);
+    begin
+        select c002 into v_username from apex_collections where collection_name='GM_STATE' and c001='username';
+        return v_username;
+    end;
+
+end GM_LOGIN_LIB;
+/
+/**** GM_CHAT_LIB ****/
 
 create or replace package GM_CHAT_LIB as
 
@@ -625,7 +658,7 @@ create or replace package body         GM_GAME_LIB as
     max_distance_per_move number;
     next_position varchar2(100);
     stop_moving boolean;
-    ended_on varchar2(4);
+    ended_on varchar2(10);
   begin
   
     select P.* into v_piece from gm_board_pieces P where P.piece_id = p_piece_id and P.game_id=p_game_id;
@@ -963,14 +996,17 @@ create or replace view gm_board_css as
 create or replace view gm_board_history_view as
   select H.history_id
           , H.game_id
-          , H.piece_id
-          , '<div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || H.player || '" piece-name="' || lower(P.piece_type_id) || '"/>' piece
-          , H.player
-          , '(' || H.old_xpos || ',' || H.old_ypos || ')' old_pos
-          , '(' || H.new_xpos || ',' || H.new_ypos || ')' new_pos
+          --, H.piece_id
+          , '<table><tr><td><div class="history-piece" id="Hpiece-' || H.piece_id || 
+            '" player="' || P.player || '" piece-name="' || lower(P.piece_type_id) || '"</td><td>' 
+            || chr(96 + H.old_xpos)|| H.old_ypos || '-' || chr(96 + H.new_xpos) || H.new_ypos || '</td></tr></table>'
+            piece
           , GM_UTIL.time_ago(H.move_time) move_time
   from gm_game_history H
-  left join gm_board_pieces P on H.piece_id = P.piece_id and H.game_id = P.game_id;/**** GM_GAMEDEF_LIB ****/
+  left join gm_board_pieces P on H.piece_id = P.piece_id and H.game_id = P.game_id
+  where H.player > 0;
+  /
+  /**** GM_GAMEDEF_LIB ****/
 
 /*********************************************************************************************************************/
 create or replace package GM_GAMEDEF_LIB as

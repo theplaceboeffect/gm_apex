@@ -1,3 +1,9 @@
+--> Code for card drag and drop
+$('[type="card"]').css('background-color','red');
+cards=Array.prototype.slice.call(document.querySelectorAll('.card'));
+squares=Array.prototype.slice.call(document.querySelectorAll('.board-location'));
+d = dragula([cards,squares]);
+-------------------------------------------------------------------------------------
 drop function gm_generate_board_location;
 create or replace function gm_generate_board_location(p_game_id number, xpos number, ypos number) return varchar2 as
 n number;

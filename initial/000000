@@ -40,15 +40,18 @@ select * from gm_board_pieces where game_id=8;
 declare x varchar2(1000); 
 begin
   select gm_game_lib.calc_valid_squares(8, 103)  into x from dual;
+  dbms_output.put_line(x);
 end;
 /
 
 select * from gm_games;
-
+/
 declare
 x varchar2(100);
 begin
- x := gm_game_lib.calc_valid_squares(8,107);
+ x := gm_game_lib.calc_valid_squares(2,113);
+ dbms_output.put_line(x);
 end;
-
+/
 select * from gm_game_history order by history_id desc;
+

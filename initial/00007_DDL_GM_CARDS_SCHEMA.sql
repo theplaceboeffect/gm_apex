@@ -22,7 +22,7 @@ create table GM_GAMEDEF_CARDS
   
   jquery_code varchar2(1000),
   css_code    varchar2(1000),
-  sql_code    varchar2(1000)
+  sql_code    varchar2(1000),
   
   constraint gm_gd_cards_pk primary key (gamedef_card_code)
   --constraint gm_gd_cards_game_fk foreign key(gamedef_code) references gm_gamedef_boards(gamedef_code)
@@ -53,6 +53,8 @@ create or replace view gm_board_cards_view as
   join gm_gamedef_cards CD on C.gamedef_card_code = CD.gamedef_card_code
 
 /
+
+/*
 delete from gm_board_cards;
 delete from gm_gamedef_cards;
 insert into gm_gamedef_cards(gamedef_card_code, gamedef_code, used_for_class, used_for_detail, card_name, card_description) values('PAWN1', 'CHESS%', 'PIECE','PAWN', 'Pawn 2 Steps', 'Your pawns can move up to two squares.');
@@ -73,3 +75,6 @@ insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1
 insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 3, 0, 'PAWN2');
 commit;
 /
+
+
+*/

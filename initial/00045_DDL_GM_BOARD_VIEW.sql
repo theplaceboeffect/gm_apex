@@ -102,11 +102,3 @@ create or replace view gm_board_history_view as
   where H.player > 0;
   /
   
-  
-  select * from gm_board_pieces;
-  select * from gm_board_history_view;
-  
-  select *
-from gm_board_history_view 
-where game_id = :P1_GAME_ID
-order by history_id desc;

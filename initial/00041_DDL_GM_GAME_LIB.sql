@@ -117,7 +117,7 @@ create or replace package body         GM_GAME_LIB as
     max_distance_per_move number;
     next_position varchar2(100);
     stop_moving boolean;
-    ended_on varchar2(4);
+    ended_on varchar2(10);
   begin
   
     select P.* into v_piece from gm_board_pieces P where P.piece_id = p_piece_id and P.game_id=p_game_id;
