@@ -82,21 +82,41 @@ function gm_board()
 board=new gm_board();
 last_attacked_location='';
 last_accept_location='';
+d=undefined;
 
 function InitializeBoardDragAndDrop()
 {
-    d = dragula(Array.prototype.slice.call(document.querySelectorAll( '.board-location'))
+    console.log('Debug - InitializeBoardDragAndDrop');
+    
+    if (typeof d !== 'undefined'){
+        board=new gm_board();
+        last_attacked_location='';
+        last_accept_location='';
+    }
+    
+    $('[type="card"]').css({'background-color':'yellow','height':'30px','width':'60px'});
+    $('.card-location').css({'background-color':'red','height':'40px','width':'100px'});
+    board_locations=Array.prototype.slice.call(document.querySelectorAll( '.board-location'));
+    card_locations=Array.prototype.slice.call(document.querySelectorAll( '.card-location'));
+
+    d = dragula(Array.prototype.slice.call(board_locations)
                 , {/* dragula options */
                     revertOnSpill:true,
                     accepts: function (piece, target, source, sibling) {
                         var current_location = target.getAttribute('id');
-                        if (last_accept_location == current_location ) {
-                            return;
+                        /*if (last_accept_location == current_location ) {
+                            return true;
                         } else {
                             last_accept_location = current_location;                        
+                        }*/
+
+                        var piece_type = piece.getAttribute('type');
+                        if (piece_type === 'card')
+                        {
+                            console.log('Moving card ');
+                            return true;
                         }
-                            
-                        // Do we really need to run this every time!?
+                        
                         board.show_valid_moves_for(piece);
                         $('.board-location').removeClass('bad-location');
                         
@@ -106,7 +126,6 @@ function InitializeBoardDragAndDrop()
                         
                         if ($("#"+current_location ).hasClass('good-location') == false) {
                             $("#"+current_location ).addClass('bad-location');
-                            $('.board-location').removeClass('capture-location');
                             return false;                                
                         }
                         return true;
@@ -116,17 +135,32 @@ function InitializeBoardDragAndDrop()
     /* Define events */
     d.on('drop', function(piece,target,source) {
             console.log("ON DROP:(" + board.xpos(piece) + "," + board.ypos(piece) + ") -> (" + board.xpos(target) + "," + board.ypos(target) + ")" );
+            var piece_type = piece.getAttribute('type');
+            if (piece_type === 'card')
+            {
+                console.log('Dropping card ');
+                return true;
+            }
             board.reset_board_location_highlights(); // reset borders 
             OnMovePiece(piece);
     });
     d.on('over', function(piece,container,source) {
             console.log("ON OVER:(" + board.xpos(piece) + "," + board.ypos(piece) + ") container (" + board.xpos(container) + "," + board.ypos(container) + ")" );
-            
+            var piece_type = piece.getAttribute('type');
+            if (piece_type === 'card')
+            {
+                console.log('Card over');
+                return true;
+            }
+
             var location = container.getAttribute('location');
             var source_location = source.getAttribute('location');
             var player=$('.game-piece[location="' + location +'"]').attr('player');
-
-            if ((typeof player === 'string') && (location != source_location) ){
+            var piece_player = piece.getAttribute('player');
+        
+            if ((typeof player === 'string') && (location != source_location) && 
+                ($("#" + container.getAttribute('id')).hasClass('good-location') == true))
+            {
                 $("#"+container.getAttribute('id')).removeClass('good-location');
                 $("#"+container.getAttribute('id')).addClass('capture-location');
                 last_attacked_location=container.getAttribute('id');
@@ -136,14 +170,29 @@ function InitializeBoardDragAndDrop()
         ;
     d.on('cancel', function(piece,container) {
         console.log("ON CANCEL:(" + board.xpos(piece) + "," + board.ypos(piece) + ") container (" + board.xpos(container) + "," + board.ypos(container) + ")" );
+        var piece_type = piece.getAttribute('type');
+        if (piece_type === 'card')
+        {
+            console.log('Cancel card  move');
+            return true;
+        }
         board.reset_board_location_highlights(); // reset borders 
 
     });
     
     d.on('drag', function(piece,container) {
         console.log("ON DRAG:(" + board.xpos(piece) + "," + board.ypos(piece) + ") container (" + board.xpos(container) + "," + board.ypos(container) + ")" );
+        var piece_type = piece.getAttribute('type');
+        if (piece_type === 'card')
+        {
+            console.log('Dragging card ');
+            return true;
+        }
+       last_accept_location = '';
     });
          
+    for (i in document.querySelectorAll( '.card-location')) { d.containers.push(card_locations[i]); }
+
     $(".game-piece").each(function(i,o) {
         new Opentip("#"+o.getAttribute('id')
             , 'id:' + o.getAttribute('id')
@@ -183,32 +232,49 @@ function OnMovePiece(e1)
     
     $s("P1_TRIGGER_MOVE", $v("P1_TRIGGER_MOVE")+1);
     $("#GAME_BOARD").trigger('apexrefresh');
+    $("#GAME_HISTORY").trigger('apexrefresh');
 }
 /***************************************************************/
 last_ping=new Date().getTime();
-PING_INTERVAL = 300 * 1000;
+PING_INTERVAL = 3 * 1000;
 last_move_count = 0;
 
 function RefreshEverything()
 {
-        console.log('Refreshing ...');
-        var ajax_call = new htmldb_Get(null,$v('pFlowId'), 'APPLICATION_PROCESS=PING',0);
-        ajax_call.get();
-        $("P1_LASTMOVE_COUNT").trigger('apexrefresh');
-        $("#GM_CHAT").trigger('apexrefresh');
-        $("#GAME_BOARD").trigger('apexrefresh');
-        $("#CURRENT_USERS").trigger('apexrefresh');
-        $("#GM_STATE").trigger('apexrefresh');   
-        $("#P1_LASTMOVE_COUNT").trigger('apexrefresh');
+    if (d.dragging == false) {
+        //console.log('Looking for changes ...');
 
+        if ($v("P1_LAST_GAME_ID") > last_game_id ) {
+            console.log('Refreshing game board');
+            $("#GAME_BOARD").trigger('apexrefresh');
+            $("#GM_STATE").trigger('apexrefresh');       
+            $("P1_CARDS").trigger('apexrefresh');
+            $("P2_CARDS").trigger('apexrefresh');        
+        } 
+        /*else {
+            console.log('Skipping refresh of game board.');
+        }*/
+        
+        if ($v("P1_LAST_CHAT_ID") > last_chat_id ) {
+            console.log('Refreshing chat');
+            $("#GM_CHAT_HISTORY").trigger('apexrefresh');
+        } 
+        /*else {
+            console.log('Skipping refresh of chat board.');
+        }*/
+    } 
+    /*else {
+        console.log('Skipping refresh because we are dragging.');
+    }*/
 }
+
 function PingServer()
 {
     var now=new Date().getTime();
-    console.log("DIFF:" + (now - last_ping));
+    //console.log("DIFF:" + (now - last_ping));
 
-    if (now - last_ping > PING_INTERVAL) {
-        RefreshEverything()
+    if (now - last_ping > PING_INTERVAL) {        
+        $s("P1_PING_TRIGGER", parseInt($v("P1_PING_TRIGGER"))+1);
         last_ping=new Date().getTime();
     }
 }

@@ -14,11 +14,15 @@ create table GM_GAMEDEF_CARDS
   card_name varchar2(50),
   card_description varchar2(1000),
   
-  parameter1 varchar2(10),
-  parameter2 varchar2(10),
-  parameter3 varchar2(10),
-  parameter4 varchar2(10),
-  parameter5 varchar2(10),
+  parameter1  varchar2(10),
+  parameter2  varchar2(10),
+  parameter3  varchar2(10),
+  parameter4  varchar2(10),
+  parameter5  varchar2(10),
+  
+  jquery_code varchar2(1000),
+  css_code    varchar2(1000),
+  sql_code    varchar2(1000)
   
   constraint gm_gd_cards_pk primary key (gamedef_card_code)
   --constraint gm_gd_cards_game_fk foreign key(gamedef_code) references gm_gamedef_boards(gamedef_code)

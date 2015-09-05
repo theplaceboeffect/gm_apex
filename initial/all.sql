@@ -1,3 +1,60 @@
+alter session set current_schema=apex_gm;
+
+create or replace procedure GM_GenerateMoveTest(p_game_id number, p_piece_id number, p_xpos number, p_ypos number) as
+v_moves varchar(4000);
+v_piece_type gm_piece_types%rowtype;
+begin
+  update gm_board_pieces set status=0 ,xpos=0, ypos=0 where game_id=p_game_id;
+  update gm_board_pieces set status=1, xpos=p_xpos, ypos=p_ypos where game_id=p_game_id and piece_id=p_piece_id;
+  
+  select gm_game_lib.calc_valid_squares(p_game_id, p_piece_id) into v_moves from dual;
+  
+  select * into v_piece_type 
+  from gm_piece_types 
+  where game_id = p_game_id and piece_type_id = (select piece_type_id from gm_board_pieces where game_id=p_game_id and piece_id=p_piece_id);
+  commit;
+  dbms_output.put_line('Moves for ' || v_piece_type.piece_name || '(' || v_piece_type.directions_allowed || ') on ' || p_xpos || ',' || p_ypos || ':' || v_moves);
+end;
+/
+commit;
+select gm_game_lib.gm_calc_valid_squares(1, 101) from dual;
+select * from gm_board_pieces where game_id=3;
+begin
+
+  GM_GenerateMoveTest(1,101,4,6);
+  GM_GenerateMoveTest(1,102,4,6);
+  GM_GenerateMoveTest(1,103,4,6);
+  GM_GenerateMoveTest(1,104,4,6);
+  GM_GenerateMoveTest(1,105,4,6);
+  GM_GenerateMoveTest(1,109,4,6);
+end;
+exec  GM_GenerateMoveTest(8,101,4,6);
+exec  GM_GenerateMoveTest(8,102,4,6);
+
+exec  GM_GenerateMoveTest(8,103,4,6);
+exec  GM_GenerateMoveTest(8,104,4,6);
+exec  GM_GenerateMoveTest(8,105,3,7);
+exec  GM_GenerateMoveTest(8,109,4,3);
+select * from gm_board_pieces where game_id=8;
+/
+declare x varchar2(1000); 
+begin
+  select gm_game_lib.calc_valid_squares(8, 103)  into x from dual;
+  dbms_output.put_line(x);
+end;
+/
+
+select * from gm_games;
+/
+declare
+x varchar2(100);
+begin
+ x := gm_game_lib.calc_valid_squares(2,113);
+ dbms_output.put_line(x);
+end;
+/
+select * from gm_game_history order by history_id desc;
+
 /**** DDL_UTIL ****/
 
 create or replace package GM_UTIL as
@@ -6,8 +63,19 @@ end GM_UTIL;
 /
 create or replace package body GM_UTIL as
   function time_ago(dt date) return varchar2 as
+  n number;
+  s varchar(10);
   begin
-    return round((sysdate - dt)*1440) || ' mins ago';
+    n := round((sysdate - dt)*1440);
+    s := 'mins';
+    
+    if n = 0 then
+      n:=round((sysdate - dt)*18400);
+      s:= 'secs';
+    end if;
+    
+    return n || ' ' || s || ' ago.';
+    
   end time_ago;
 end GM_UTIL;
 /
@@ -344,18 +412,22 @@ create table GM_GAMEDEF_CARDS
 (
   gamedef_card_code varchar2(10),
 
-  gamedef_code varchar2(8), -- Null to apply for all games
+  gamedef_code varchar2(10), -- Null to apply for all games
   used_for_class varchar2(10),   -- PLAYER, BOARD, CARD, TURN, PIECE
   used_for_detail varchar2(10),
   
   card_name varchar2(50),
   card_description varchar2(1000),
   
-  parameter1 varchar2(10),
-  parameter2 varchar2(10),
-  parameter3 varchar2(10),
-  parameter4 varchar2(10),
-  parameter5 varchar2(10),
+  parameter1  varchar2(10),
+  parameter2  varchar2(10),
+  parameter3  varchar2(10),
+  parameter4  varchar2(10),
+  parameter5  varchar2(10),
+  
+  jquery_code varchar2(1000),
+  css_code    varchar2(1000),
+  sql_code    varchar2(1000)
   
   constraint gm_gd_cards_pk primary key (gamedef_card_code)
   --constraint gm_gd_cards_game_fk foreign key(gamedef_code) references gm_gamedef_boards(gamedef_code)
@@ -366,7 +438,7 @@ create table GM_BOARD_CARDS
 (
   game_id number,
   card_id number,
-  gamedef_card_code varchar2(5),
+  gamedef_card_code varchar2(10),
   player number,
   parameter1 varchar2(10),
   parameter2 varchar2(10),
@@ -374,39 +446,38 @@ create table GM_BOARD_CARDS
   parameter4 varchar2(10),
   parameter5 varchar2(10),
 
-  constraint gm_board_cards_pk primary key (game_id, card_id),
+  constraint gm_board_cards_pk primary key (game_id, card_id,gamedef_card_code,player),
   constraint gm_board_cards_game_fk foreign key(gamedef_card_code) references GM_GAMEDEF_CARDS(gamedef_card_code)
 );
 /
 create or replace view gm_board_cards_view as
   select C.gamedef_card_code, C.card_id, C.player, C.game_id, CD.used_for_class, CD.used_for_detail, CD.card_name, CD.card_description,
-          '<id="' || C.card_id || '" type="card"> ' || CD.gamedef_card_code || '</b>' value,
+          '<id="' || C.card_id || '" type="card">' || CD.gamedef_card_code || '</b>' value,
           CD.card_name label
   from gm_board_cards C
   join gm_gamedef_cards CD on C.gamedef_card_code = CD.gamedef_card_code
 
 /
-select * from gm_board_cards_view;
-/
+delete from gm_board_cards;
+delete from gm_gamedef_cards;
 insert into gm_gamedef_cards(gamedef_card_code, gamedef_code, used_for_class, used_for_detail, card_name, card_description) values('PAWN1', 'CHESS%', 'PIECE','PAWN', 'Pawn 2 Steps', 'Your pawns can move up to two squares.');
 insert into gm_gamedef_cards(gamedef_card_code, gamedef_code, used_for_class, used_for_detail, card_name, card_description) values('PAWN2', 'CHESS%', 'PIECE','PAWN', 'Pawn 3 Steps', 'Your pawns can move up to three squares.');
 insert into gm_gamedef_cards(gamedef_card_code, gamedef_code, used_for_class, used_for_detail, card_name, card_description) values('PAWN-1', 'CHESS%', 'PIECE','PAWN', 'Pawn -1 Steps', 'Your pawns can move backwards squares.');
 insert into gm_gamedef_cards(gamedef_card_code, gamedef_code, used_for_class, used_for_detail, card_name, card_description) values('PAWN-2', 'CHESS%', 'PIECE','PAWN', 'Pawn -2 Steps', 'Your pawns can move up to two squares backwards.');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(7, 1, 1, 'PAWN1');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(7, 2, 1, 'PAWN2');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(7, 3, 1, 'PAWN2');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(7, 4, 1, 'PAWN2');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(7, 5, 1, 'PAWN2');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(7, 6, 1, 'PAWN2');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(7, 7, 1, 'PAWN2');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(7, 8, 2, 'PAWN3');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(7, 9, null, 'PAWN4');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(7, 10, null, 'PAWN4');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 1, 1, 'PAWN1');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 2, 1, 'PAWN2');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 3, 1, 'PAWN2');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 4, 1, 'PAWN-1');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 5, 1, 'PAWN-2');
 
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 1, 2, 'PAWN2');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 2, 2, 'PAWN2');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 3, 2, 'PAWN1');
+
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 2, 0, 'PAWN2');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 3, 0, 'PAWN2');
 commit;
-
-select * from gm_board_cards where game_id=7 and player=1;
-/**** GM_CHAT_LIB ****/
+//**** GM_CHAT_LIB ****/
 
 create or replace package GM_CHAT_LIB as
 
@@ -490,7 +561,7 @@ create or replace package body         GM_GAME_LIB as
               else
                 apex_debug_message.log_message('disallow capture',true,1);
                 new_position:='';
-                ended_on:='own';
+                ended_on:='xcap';
               end if;
             else
                 new_position:='';
@@ -501,13 +572,14 @@ create or replace package body         GM_GAME_LIB as
           else
             ended_on:='';
             -- not occupied - make sure that this is a location we can move into.
-            if p_piece.piece_id = 213 then dbms_output.put_line('test move:' || move_step || '-' || p_piece_type.move_directions); end if;
+            if p_piece.piece_id = 214 then dbms_output.put_line('test move:' || move_step || '-' || p_piece_type.move_directions || 'test=' || instr(nvl(p_piece_type.move_directions,move_step),move_step)); end if;
             if instr(nvl(p_piece_type.move_directions,move_step),move_step) > 0 then
-                if p_piece.piece_id = 213 then  dbms_output.put_line('allow move'); end if;
+                if p_piece.piece_id = 214 then  dbms_output.put_line('allow move'); end if;
                 new_position := ':loc-' || new_xpos || '-' || new_ypos;
             else
-                if p_piece.piece_id = 213 then dbms_output.put_line('disallow move'); end if;
+                if p_piece.piece_id = 214 then dbms_output.put_line('disallow move'); end if;
                 new_position:='';
+                ended_on := 'xmove';
                 stop_moving := true;
             end if;
           end if; -- if occupied
@@ -527,7 +599,7 @@ create or replace package body         GM_GAME_LIB as
         dbms_output.put_line('  NewLoc: @ '|| new_xpos || ',' || new_ypos);
       end if;
     end loop; 
-  
+    dbms_output.put_line('RETURNING: ' || return_positions);
     return return_positions;
   end move_in_direction;
 
@@ -609,23 +681,24 @@ create or replace package body         GM_GAME_LIB as
         
         dbms_output.put_line('[DEBUG1:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
         if move_step = '^' then
-          v_positions := v_positions || move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, 0, distance_per_step, new_x, new_y, ended_on);
+          next_position :=  move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, 0, distance_per_step, new_x, new_y, ended_on);
         elsif move_step = 'v'then        
-          v_positions := v_positions || move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, 0, (-distance_per_step), new_x, new_y, ended_on);
+          next_position :=  move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, 0, (-distance_per_step), new_x, new_y, ended_on);
         elsif move_step = '<' then        
-          v_positions := v_positions || move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), 0, new_x, new_y, ended_on);
+          next_position :=  move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), 0, new_x, new_y, ended_on);
         elsif move_step = '>' then        
-          v_positions := v_positions || move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (distance_per_step), 0, new_x, new_y, ended_on);
+          next_position :=  move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (distance_per_step), 0, new_x, new_y, ended_on);
         elsif move_step = '\' then        
-          v_positions := v_positions || move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (distance_per_step), (distance_per_step), new_x, new_y, ended_on);
+          next_position :=  move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (distance_per_step), (distance_per_step), new_x, new_y, ended_on);
         elsif move_step = '/' then        
-          v_positions := v_positions || move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), (distance_per_step), new_x, new_y, ended_on);
+          next_position :=  move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), (distance_per_step), new_x, new_y, ended_on);
         elsif move_step = 'L' then    
-          v_positions := v_positions || move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), (-distance_per_step), new_x, new_y, ended_on);
+          next_position :=  move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (-distance_per_step), (-distance_per_step), new_x, new_y, ended_on);
         elsif move_step = 'J' then    
-          v_positions := v_positions || move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (distance_per_step), (-distance_per_step), new_x, new_y, ended_on);
+          next_position :=  move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (distance_per_step), (-distance_per_step), new_x, new_y, ended_on);
         end if;
-        dbms_output.put_line('[DEBUG1:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
+        v_positions := v_positions || next_position;
+        dbms_output.put_line('[DEBUG1:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' added=' || next_position || ' ended_on=' || ended_on);
       end loop; -- for c
       
       dbms_output.put_line('DEBUG2:ended_on=' || ended_on);      
@@ -873,6 +946,8 @@ create or replace view gm_board_css as
     union all
     select '.game-piece {height:' || v('P1_SQUARE_SIZE') || 'px;width:' || v('P1_SQUARE_SIZE') || 'px;background-size: ' || v('P1_SQUARE_SIZE') || 'px ' || v('P1_SQUARE_SIZE') || 'px;}' css, 10 display_order from dual
     union all
+    select '.history-piece {height:25px;width:25px;background-size: 25px 25px;}' css, 10 display_order from dual
+    union all
     -- GameDef CSS
     select css_selector || ' ' || css_definition board_css, css_order display_order
     from gm_gamedef_css where gamedef_code=(select board_type from gm_boards where game_id=v('P1_GAME_ID'))
@@ -884,7 +959,18 @@ create or replace view gm_board_css as
   order by display_order
   ;
 /
-/**** GM_GAMEDEF_LIB ****/
+
+create or replace view gm_board_history_view as
+  select H.history_id
+          , H.game_id
+          , H.piece_id
+          , '<div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || H.player || '" piece-name="' || lower(P.piece_type_id) || '"/>' piece
+          , H.player
+          , '(' || H.old_xpos || ',' || H.old_ypos || ')' old_pos
+          , '(' || H.new_xpos || ',' || H.new_ypos || ')' new_pos
+          , GM_UTIL.time_ago(H.move_time) move_time
+  from gm_game_history H
+  left join gm_board_pieces P on H.piece_id = P.piece_id and H.game_id = P.game_id;/**** GM_GAMEDEF_LIB ****/
 
 /*********************************************************************************************************************/
 create or replace package GM_GAMEDEF_LIB as
@@ -1066,7 +1152,7 @@ begin
     
     -- define each pice
     insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions ) 
-                                        values('CHESS', 'PAWN', 'pawn', CANNOT_JUMP,  1, '^^', '^:\:/','\/', '^');
+                                        values('CHESS', 'PAWN', 'pawn', CANNOT_JUMP,  1, '^^:^:\:/', '^:\:/','\/', '^');
     insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions  ) 
                                         values('CHESS', 'BISHOP', 'bishop', CANNOT_JUMP, 0, null, 'X',null, null);
     insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions  ) 
@@ -2177,7 +2263,7 @@ begin
         
     -- define each pice
     insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions ) 
-                                        values(fisher_game_code, 'PAWN', 'pawn', CANNOT_JUMP,  1, '^^', '^:\:/','\/', '^');
+                                        values(fisher_game_code, 'PAWN', 'pawn', CANNOT_JUMP,  1, '^^:^: \:/','^:\:/','\/', '^');
     insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions  ) 
                                         values(fisher_game_code, 'BISHOP', 'bishop', CANNOT_JUMP, 0, null, 'X',null, null);
     insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions  ) 
