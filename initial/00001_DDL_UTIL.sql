@@ -9,12 +9,17 @@ create or replace package body GM_UTIL as
   n number;
   s varchar(10);
   begin
-    n := round((sysdate - dt)*1440);
-    s := 'mins';
+    n := round(sysdate - dt) * 24);
+    s := 'hrs';
     
-    if n = 0 then
-      n:=round((sysdate - dt)*18400);
-      s:= 'secs';
+    if n = 0 then 
+      n := round((sysdate - dt)*1440);
+      s := 'mins';
+    
+      if n = 0 then
+        n:=round((sysdate - dt)*18400);
+        s:= 'secs';
+      end if;
     end if;
     
     return n || ' ' || s || ' ago.';
