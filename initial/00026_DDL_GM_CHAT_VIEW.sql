@@ -7,5 +7,7 @@ create or replace view gm_chat_view as
           GM_UTIL.TIME_AGO(message_timestamp) || '<br/>' ||
           message chat_entry
   from gm_chat
-  where message_timestamp > sysdate - 1/24;
+  where message_timestamp > sysdate - 1/24
+  order by chat_id desc
 /
+

@@ -101,4 +101,13 @@ create or replace view gm_board_history_view as
   left join gm_board_pieces P on H.piece_id = P.piece_id and H.game_id = P.game_id
   where H.player > 0;
   /
-  
+create or replace view gm_board_cards_view as
+  select C.gamedef_card_code, C.card_id, C.player, C.game_id, CD.used_for_class, CD.used_for_detail, CD.card_name, CD.card_description,
+          '<div class="card-location" id="card-loc-' || C.card_id || '">' || 
+          ' <div class="card" type="card" id="card-' || C.player || '-' || CD.gamedef_card_code || '">' || CD.gamedef_card_code
+          || '</div></div>' value,
+          CD.card_name label
+  from gm_board_cards C
+  join gm_gamedef_cards CD on C.gamedef_card_code = CD.gamedef_card_code
+
+/

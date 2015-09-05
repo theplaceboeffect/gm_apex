@@ -45,14 +45,6 @@ create table GM_BOARD_CARDS
   constraint gm_board_cards_game_fk foreign key(gamedef_card_code) references GM_GAMEDEF_CARDS(gamedef_card_code)
 );
 /
-create or replace view gm_board_cards_view as
-  select C.gamedef_card_code, C.card_id, C.player, C.game_id, CD.used_for_class, CD.used_for_detail, CD.card_name, CD.card_description,
-          '<id="' || C.card_id || '" type="card">' || CD.gamedef_card_code || '</b>' value,
-          CD.card_name label
-  from gm_board_cards C
-  join gm_gamedef_cards CD on C.gamedef_card_code = CD.gamedef_card_code
-
-/
 
 /*
 delete from gm_board_cards;
