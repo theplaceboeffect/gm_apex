@@ -8,7 +8,7 @@ create or replace package GM_GAME_LIB as
   function new_game(p_player1 varchar2, p_player2 varchar2, p_game_type varchar2, p_fisher_game varchar2) return number;
   procedure output_board_config(p_game_id number);
   procedure move_piece(p_game_id number, p_piece_id number, p_xpos number, p_ypos number);
-
+  procedure move_card(p_game_id number, p_piece_id varchar2, p_xpos number, p_ypos number);
 end GM_GAME_LIB;
 /
 create or replace package body         GM_GAME_LIB as
@@ -126,7 +126,7 @@ create or replace package body         GM_GAME_LIB as
       return '';
     end if;
     
-    select PT.* into v_piece_type from gm_piece_types PT where PT.piece_type_id = v_piece.piece_type_id and PT.game_id=p_game_id;
+    select PT.* into v_piece_type from gm_piece_types PT where PT.piece_type_code = v_piece.piece_type_code and PT.game_id=p_game_id;
     
     -- Flip the y direction if the second player
     if v_piece.player = 1 then y_direction := 1; else y_direction := -1 ;end if;
@@ -221,7 +221,7 @@ create or replace package body         GM_GAME_LIB as
     return '<div id="piece-' || piece_id || '" player=' || player_number 
                               || ' xpos=' || p_xpos || ' ypos=' || p_ypos || ' location="' || p_xpos || '.' || p_ypos 
                               || '" piece-name="' || piece_name  
-                              || '" class="game-piece"' 
+                              || '" class="game-piece" type="game-piece"' 
                               || '" positions="' || calc_valid_squares(game_id, piece_id)
                               || '"/>';
   
@@ -230,6 +230,13 @@ create or replace package body         GM_GAME_LIB as
     end if;
   
   end;
+
+  /*********************************************************************************************************************/
+  procedure move_card(p_game_id number, p_piece_id varchar2, p_xpos number, p_ypos number)
+  as
+  begin
+    process_card(p_game_id, p_piece_id, p_xpos, p_ypos);
+  end move_card;
 
   /*********************************************************************************************************************/
   procedure move_piece(p_game_id number, p_piece_id number, p_xpos number, p_ypos number)
@@ -250,7 +257,7 @@ create or replace package body         GM_GAME_LIB as
       return;
     end if;
     
-    select PT.* into v_piece_type from gm_piece_types PT where PT.piece_type_id = v_piece.piece_type_id and PT.game_id=p_game_id;
+    select PT.* into v_piece_type from gm_piece_types PT where PT.piece_type_code = v_piece.piece_type_code and PT.game_id=p_game_id;
 
     select player into v_player from gm_board_pieces where game_id = p_game_id and piece_id = p_piece_id;
     v_message := 'In game ' || p_game_id || ', player ' || v_piece.player || ' moved ' || v_piece_type.piece_name || ' from ' || v_piece.xpos || ',' || v_piece.ypos || ' to ' || p_xpos || ',' || p_ypos || '.'; 
@@ -277,7 +284,7 @@ create or replace package body         GM_GAME_LIB as
       set status = 0, xpos = 0, ypos = 0
       where game_id = p_game_id and piece_id = v_taken_piece.piece_id;
   
-      insert into gm_game_history(game_id,  piece_id,               player,   old_xpos, old_ypos, new_xpos, new_ypos)
+      insert into gm_game_history(game_id,  piece_id, player,   old_xpos, old_ypos, new_xpos, new_ypos)
                            values(p_game_id, v_taken_piece.piece_id, v_player, v_taken_piece.xpos, v_piece.ypos, 0, 0);
     end if;
 

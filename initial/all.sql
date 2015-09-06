@@ -120,7 +120,7 @@ create table gm_board_states
 create table gm_piece_types
 (
   game_id number,
-  piece_type_id varchar2(20),
+  piece_type_code varchar2(20),
   piece_name varchar2(50),
   n_steps_per_move number,
   can_jump number,
@@ -129,7 +129,7 @@ create table gm_piece_types
   capture_directions varchar2(50),
   move_directions varchar2(50),
   
-  constraint piece_types_id_pk primary key (game_id, piece_type_id),
+  constraint piece_types_id_pk primary key (game_id, piece_type_code),
   constraint piece_types_game_id_fk foreign key (game_id) references gm_games(game_id)
 );
 /
@@ -139,7 +139,7 @@ create table gm_board_pieces
 (
   game_id number,
   piece_id number,
-  piece_type_id varchar2(20),
+  piece_type_code varchar2(20),
 --  num_moves_made number,
   xpos number,
   ypos number,
@@ -399,40 +399,78 @@ create table GM_BOARD_CARDS
   constraint gm_board_cards_game_fk foreign key(gamedef_card_code) references GM_GAMEDEF_CARDS(gamedef_card_code)
 );
 /
+
 create or replace view gm_board_cards_view as
   select C.gamedef_card_code, C.card_id, C.player, C.game_id, CD.used_for_class, CD.used_for_detail, CD.card_name, CD.card_description,
-          '<id="' || C.card_id || '" type="card">' || CD.gamedef_card_code || '</b>' value,
+          '<div class="card-location" id="card-loc-' || C.card_id || '">' || 
+          ' <div class="card" type="card" id="card-' || C.card_id || '"'
+          || '" positions="' || (select listagg('loc-' || xpos||'-'||ypos,':') within group(order by xpos)
+              from gm_board_pieces 
+              where piece_type_code='PAWN' and game_id=1 and round(piece_id/100) != 1 and status=1
+              ) || '"'
+          || '">' || CD.gamedef_card_code
+          || '</div></div>' value,
           CD.card_name label
   from gm_board_cards C
   join gm_gamedef_cards CD on C.gamedef_card_code = CD.gamedef_card_code
 
 /
+create or replace procedure process_card(p_game_id number, p_piece_id varchar2, p_xpos number, p_ypos number)
+as
+  v_card_id number;
+  card_def gm_gamedef_cards%rowtype;
+  piece gm_board_pieces%rowtype;
+begin 
 
-/*
+  v_card_id := replace(p_piece_id,'card-','');
+
+  log_message('Processing card: [game_id=' || p_game_id || '][piece_id=' || p_piece_id || '][' || p_xpos || ',' || p_ypos || '][v_card_id=' || v_card_id || ']');
+
+  -- Get card definition.
+  select D.* into card_def
+  from gm_board_cards C
+  join gm_gamedef_cards D on C.gamedef_card_code = D.gamedef_card_code
+  where C.game_id = p_game_id and C.card_id=v_card_id;
+
+  -- Retrieve the piece to apply the card onto
+  select P.* into piece
+  from gm_board_pieces P
+  where P.xpos = p_xpos and P.ypos = p_ypos;
+  
+  
+
+end;
+/
+select * from l;
+select * from gm_board_pieces;
+/
 delete from gm_board_cards;
 delete from gm_gamedef_cards;
-insert into gm_gamedef_cards(gamedef_card_code, gamedef_code, used_for_class, used_for_detail, card_name, card_description) values('PAWN1', 'CHESS%', 'PIECE','PAWN', 'Pawn 2 Steps', 'Your pawns can move up to two squares.');
-insert into gm_gamedef_cards(gamedef_card_code, gamedef_code, used_for_class, used_for_detail, card_name, card_description) values('PAWN2', 'CHESS%', 'PIECE','PAWN', 'Pawn 3 Steps', 'Your pawns can move up to three squares.');
-insert into gm_gamedef_cards(gamedef_card_code, gamedef_code, used_for_class, used_for_detail, card_name, card_description) values('PAWN-1', 'CHESS%', 'PIECE','PAWN', 'Pawn -1 Steps', 'Your pawns can move backwards squares.');
-insert into gm_gamedef_cards(gamedef_card_code, gamedef_code, used_for_class, used_for_detail, card_name, card_description) values('PAWN-2', 'CHESS%', 'PIECE','PAWN', 'Pawn -2 Steps', 'Your pawns can move up to two squares backwards.');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 1, 1, 'PAWN1');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 2, 1, 'PAWN2');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 3, 1, 'PAWN2');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 4, 1, 'PAWN-1');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 5, 1, 'PAWN-2');
+insert into gm_gamedef_cards(gamedef_card_code, gamedef_code, used_for_class, used_for_detail, card_name, card_description, parameter1) 
+                      values('P2B', 'CHESS%', 'PIECE','PAWN', 'Pawn To Bishop', 'Change one of your Pawns into a Bishop.', 'BISHOP');
+insert into gm_gamedef_cards(gamedef_card_code, gamedef_code, used_for_class, used_for_detail, card_name, card_description, parameter1) 
+                      values('P2N', 'CHESS%', 'PIECE','PAWN', 'Pawn To Knight', 'Change one of your Pawns into a Knight.', 'KNIGHT');
+insert into gm_gamedef_cards(gamedef_card_code, gamedef_code, used_for_class, used_for_detail, card_name, card_description, parameter1) 
+                      values('P2R', 'CHESS%', 'PIECE','PAWN', 'Pawn To Rook', 'Change one of your Pawns into a Rook.', 'ROOK');
+insert into gm_gamedef_cards(gamedef_card_code, gamedef_code, used_for_class, used_for_detail, card_name, card_description, parameter1) 
+                      values('P2Q', 'CHESS%', 'PIECE','PAWN', 'Pawn To Queen', 'Change one of your Pawns into a Queen.', 'QUEEN');
+                      
+                      
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 1, 1, 'P2B');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 2, 1, 'P2N');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 3, 1, 'P2R');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 4, 1, 'P2Q');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 5, 1, 'P2B');
 
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 1, 2, 'PAWN2');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 2, 2, 'PAWN2');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 3, 2, 'PAWN1');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 6, 2, 'P2B');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 7, 2, 'P2B');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 8, 2, 'P2N');
 
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 2, 0, 'PAWN2');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 3, 0, 'PAWN2');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 9, 0, 'P2R');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 10, 0, 'P2R');
 commit;
 /
-
-
-*/
-alter session set current_schema=apex_gm;
+select * from l;alter session set current_schema=apex_gm;
 
 create or replace package GM_LOGIN_LIB as
 
@@ -537,8 +575,10 @@ create or replace view gm_chat_view as
           GM_UTIL.TIME_AGO(message_timestamp) || '<br/>' ||
           message chat_entry
   from gm_chat
-  where message_timestamp > sysdate - 1/24;
+  where message_timestamp > sysdate - 1/24
+  order by chat_id desc
 /
+
 /**** GM_GAME_LIB ****/
 create or replace package GM_GAME_LIB as
 
@@ -549,7 +589,7 @@ create or replace package GM_GAME_LIB as
   function new_game(p_player1 varchar2, p_player2 varchar2, p_game_type varchar2, p_fisher_game varchar2) return number;
   procedure output_board_config(p_game_id number);
   procedure move_piece(p_game_id number, p_piece_id number, p_xpos number, p_ypos number);
-
+  procedure move_card(p_game_id number, p_piece_id varchar2, p_xpos number, p_ypos number);
 end GM_GAME_LIB;
 /
 create or replace package body         GM_GAME_LIB as
@@ -667,7 +707,7 @@ create or replace package body         GM_GAME_LIB as
       return '';
     end if;
     
-    select PT.* into v_piece_type from gm_piece_types PT where PT.piece_type_id = v_piece.piece_type_id and PT.game_id=p_game_id;
+    select PT.* into v_piece_type from gm_piece_types PT where PT.piece_type_code = v_piece.piece_type_code and PT.game_id=p_game_id;
     
     -- Flip the y direction if the second player
     if v_piece.player = 1 then y_direction := 1; else y_direction := -1 ;end if;
@@ -762,7 +802,7 @@ create or replace package body         GM_GAME_LIB as
     return '<div id="piece-' || piece_id || '" player=' || player_number 
                               || ' xpos=' || p_xpos || ' ypos=' || p_ypos || ' location="' || p_xpos || '.' || p_ypos 
                               || '" piece-name="' || piece_name  
-                              || '" class="game-piece"' 
+                              || '" class="game-piece" type="game-piece"' 
                               || '" positions="' || calc_valid_squares(game_id, piece_id)
                               || '"/>';
   
@@ -771,6 +811,13 @@ create or replace package body         GM_GAME_LIB as
     end if;
   
   end;
+
+  /*********************************************************************************************************************/
+  procedure move_card(p_game_id number, p_piece_id varchar2, p_xpos number, p_ypos number)
+  as
+  begin
+    process_card(p_game_id, p_piece_id, p_xpos, p_ypos);
+  end move_card;
 
   /*********************************************************************************************************************/
   procedure move_piece(p_game_id number, p_piece_id number, p_xpos number, p_ypos number)
@@ -791,7 +838,7 @@ create or replace package body         GM_GAME_LIB as
       return;
     end if;
     
-    select PT.* into v_piece_type from gm_piece_types PT where PT.piece_type_id = v_piece.piece_type_id and PT.game_id=p_game_id;
+    select PT.* into v_piece_type from gm_piece_types PT where PT.piece_type_code = v_piece.piece_type_code and PT.game_id=p_game_id;
 
     select player into v_player from gm_board_pieces where game_id = p_game_id and piece_id = p_piece_id;
     v_message := 'In game ' || p_game_id || ', player ' || v_piece.player || ' moved ' || v_piece_type.piece_name || ' from ' || v_piece.xpos || ',' || v_piece.ypos || ' to ' || p_xpos || ',' || p_ypos || '.'; 
@@ -907,7 +954,7 @@ end GM_GAME_LIB;
 CREATE OR REPLACE FORCE VIEW gm_board_view as
   with pieces as (
         select  P.game_id ,
-                P.piece_type_id ,
+                P.piece_type_code ,
                 P.piece_id ,
                 P.xpos ,
                 P.ypos ,
@@ -915,7 +962,7 @@ CREATE OR REPLACE FORCE VIEW gm_board_view as
                 P.status ,
                 T.piece_name
         from gm_board_pieces P
-        join gm_piece_types T on P.piece_type_id = T.piece_type_id and P.game_id = T.game_id
+        join gm_piece_types T on P.piece_type_code = T.piece_type_code and P.game_id = T.game_id
       )
       , occupied_rows as (
         select distinct R.game_id, R.ypos
@@ -998,7 +1045,7 @@ create or replace view gm_board_history_view as
           , H.game_id
           --, H.piece_id
           , '<table><tr><td><div class="history-piece" id="Hpiece-' || H.piece_id || 
-            '" player="' || P.player || '" piece-name="' || lower(P.piece_type_id) || '"</td><td>' 
+            '" player="' || P.player || '" piece-name="' || lower(P.piece_type_code) || '"</td><td>' 
             || chr(96 + H.old_xpos)|| H.old_ypos || '-' || chr(96 + H.new_xpos) || H.new_ypos || '</td></tr></table>'
             piece
           , GM_UTIL.time_ago(H.move_time) move_time
@@ -1006,7 +1053,7 @@ create or replace view gm_board_history_view as
   left join gm_board_pieces P on H.piece_id = P.piece_id and H.game_id = P.game_id
   where H.player > 0;
   /
-  /**** GM_GAMEDEF_LIB ****/
+/**** GM_GAMEDEF_LIB ****/
 
 /*********************************************************************************************************************/
 create or replace package GM_GAMEDEF_LIB as
@@ -1044,13 +1091,13 @@ create or replace package body GM_GAMEDEF_LIB as
     order by ypos;
     
     -- Initialize the pieces
-    insert into gm_piece_types(game_id,piece_type_id, piece_name, can_jump, n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions) 
+    insert into gm_piece_types(game_id,piece_type_code, piece_name, can_jump, n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions) 
                   select p_game_id, piece_type_code, piece_name, can_jump, n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions 
                   from gm_gamedef_piece_types
                   where gamedef_code=p_game_name; 
                   
     -- Place board pieces
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, xpos, ypos, player, status)
+    insert into gm_board_pieces(game_id, piece_type_code, piece_id, xpos, ypos, player, status)
                 select p_game_id, piece_type_code, piece_id, xpos, ypos, player, status
                 from gm_gamedef_pieces
                 where gamedef_code=p_game_name;

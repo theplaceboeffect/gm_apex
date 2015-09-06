@@ -63,7 +63,7 @@ create table gm_board_states
 create table gm_piece_types
 (
   game_id number,
-  piece_type_id varchar2(20),
+  piece_type_code varchar2(20),
   piece_name varchar2(50),
   n_steps_per_move number,
   can_jump number,
@@ -72,7 +72,7 @@ create table gm_piece_types
   capture_directions varchar2(50),
   move_directions varchar2(50),
   
-  constraint piece_types_id_pk primary key (game_id, piece_type_id),
+  constraint piece_types_id_pk primary key (game_id, piece_type_code),
   constraint piece_types_game_id_fk foreign key (game_id) references gm_games(game_id)
 );
 /
@@ -82,7 +82,7 @@ create table gm_board_pieces
 (
   game_id number,
   piece_id number,
-  piece_type_id varchar2(20),
+  piece_type_code varchar2(20),
 --  num_moves_made number,
   xpos number,
   ypos number,

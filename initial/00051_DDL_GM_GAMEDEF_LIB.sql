@@ -36,13 +36,13 @@ create or replace package body GM_GAMEDEF_LIB as
     order by ypos;
     
     -- Initialize the pieces
-    insert into gm_piece_types(game_id,piece_type_id, piece_name, can_jump, n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions) 
+    insert into gm_piece_types(game_id,piece_type_code, piece_name, can_jump, n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions) 
                   select p_game_id, piece_type_code, piece_name, can_jump, n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions 
                   from gm_gamedef_piece_types
                   where gamedef_code=p_game_name; 
                   
     -- Place board pieces
-    insert into gm_board_pieces(game_id, piece_type_id, piece_id, xpos, ypos, player, status)
+    insert into gm_board_pieces(game_id, piece_type_code, piece_id, xpos, ypos, player, status)
                 select p_game_id, piece_type_code, piece_id, xpos, ypos, player, status
                 from gm_gamedef_pieces
                 where gamedef_code=p_game_name;
