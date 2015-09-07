@@ -58,7 +58,6 @@ CREATE OR REPLACE FORCE VIEW gm_board_view as
     ;
 /
 
-
 create or replace view gm_board_css as
   select css, display_order 
   from (
@@ -73,6 +72,10 @@ create or replace view gm_board_css as
     select '.board-location {  height:' || v('P1_SQUARE_SIZE') || 'px;  width:' || v('P1_SQUARE_SIZE') || 'px;}' css, 10 display_order from dual
     union all
     select '.game-piece {height:' || v('P1_SQUARE_SIZE') || 'px;width:' || v('P1_SQUARE_SIZE') || 'px;background-size: ' || v('P1_SQUARE_SIZE') || 'px ' || v('P1_SQUARE_SIZE') || 'px;}' css, 10 display_order from dual
+    union all
+    select '[type="card"] { background-color: yellow; height:30px; width: 100px; }', 10 display_order from dual
+    union all
+    select '.card-location { background-color: red; height:"30px"; width: "100px"; }', 10 display_order from dual
     union all
     select '.history-piece {height:25px;width:25px;background-size: 25px 25px;}' css, 10 display_order from dual
     union all

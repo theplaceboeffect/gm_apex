@@ -1,29 +1,10 @@
-<h1>People</h1>
-Igor Tsyganov - Chess advice</br>
-Andrey Popov - Implementation ideas & sounding board.</br>
-Peter Fenves - Testing</br>
+ORACLE:
 
-<b>Pieces SVG:</b> https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces</br/>
+mount /dev/disk/by-uuid/91da37cd-3d3f-4955-9d99-7c5a23f06d06 /u01
+chmod +s oracle
+cp /u01.new/app/oracle/oradata/XE/*.dbf .
+cd oracle
+chown -R oracle:dba .
 
-<b>Chess Notation:</b> Chess_notation - Chess Notation Ideas</br/>
 
-<b>Chess 960</b></br>
-<b>General Information:</b> https://en.wikipedia.org/wiki/Chess960</br>
-<b>Starting Position:</b> https://en.wikipedia.org/wiki/Chess960_starting_position</br>
-<b>Numbering Scheme:</b> https://en.wikipedia.org/wiki/Chess960_numbering_scheme</br>
-<b>All Starting Positions:</b> http://koti.mbnet.fi/villes/php/fischerandom.php</br>
-
------
-create or replace view gm_board_history_view as
-  select H.history_id
-          , H.game_id
-          , H.piece_id
-          , '<div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || H.player || '" piece-name="' || lower(P.piece_type_id) || '"/>' piece
-          , H.player
-          , '(' || H.old_xpos || ',' || H.old_ypos || ')' old_pos
-          , '(' || H.new_xpos || ',' || H.new_ypos || ')' new_pos
-		  '<div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || H.player || '" piece-name="' || lower(P.piece_type_id) || '"/>' ||
-		  char(60 + new_xpos) || new_ypos || '-' || char(60 + new_xpos) || new_ypos notation
-          , GM_UTIL.time_ago(H.move_time) move_time
-  from gm_game_history H
-  left join gm_board_pieces P on H.piece_id = P.piece_id and H.game_id = P.game_id;
+APEX:

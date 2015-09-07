@@ -89,10 +89,12 @@ function InitializeBoardDragAndDrop()
 {
     console.log('Debug - InitializeBoardDragAndDrop');
     
-    if (typeof d !== 'undefined'){
+    if (typeof d === 'undefined'){
         board=new gm_board();
         last_attacked_location='';
         last_accept_location='';
+    } else {
+        d.destroy();
     }
     
     $('[type="card"]').css({'background-color':'yellow','height':'30px','width':'60px'});
@@ -111,13 +113,14 @@ function InitializeBoardDragAndDrop()
                             last_accept_location = current_location;                        
                         }*/
 
-                        var piece_type = piece.getAttribute('type');
+/*                        var piece_type = piece.getAttribute('type');
                         if (piece_type === 'card')
                         {
                             console.log('Moving card ');
                             return true;
                         }
-                        
+*/
+                        console.log('Moving ' + piece.getAttribute('class'));                       
                         board.show_valid_moves_for(piece);
                         $('.board-location').removeClass('bad-location');
                         
@@ -192,8 +195,10 @@ function InitializeBoardDragAndDrop()
        last_accept_location = '';
     });
          
-    for (i in document.querySelectorAll( '.card-location')) { d.containers.push(card_locations[i]); }
-
+    for (i in document.querySelectorAll( '.card-location')) { 
+        d.containers.push(card_locations[i]); 
+    }
+    
     $(".game-piece").each(function(i,o) {
         new Opentip("#"+o.getAttribute('id')
             , 'id:' + o.getAttribute('id')
