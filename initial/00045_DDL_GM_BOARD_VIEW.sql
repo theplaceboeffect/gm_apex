@@ -62,9 +62,9 @@ create or replace view gm_board_css as
   select css, display_order 
   from (
     -- start CSS
-    select '<style type="text/css">' css, 0 display_order from dual
+    select '<style type="text/css">' css, -100000 display_order from dual
     union all
-    select '[summary="???"] {}' css, 1 display_order from dual
+    select '[summary="???"] {}' css, 0 display_order from dual
     union all
     -- Board CSS
     select '[summary="GameBoard"] td {    padding: 0px 0px 0px 0px;}' css, 10 display_order from dual
@@ -92,15 +92,40 @@ create or replace view gm_board_css as
 /
 
 create or replace view gm_board_history_view as
-  select H.history_id
-          , H.game_id
-          --, H.piece_id
-          , '<table><tr><td><div class="history-piece" id="Hpiece-' || H.piece_id || 
-            '" player="' || P.player || '" piece-name="' || lower(P.piece_type_code) || '"</td><td>' 
-            || chr(96 + H.old_xpos)|| H.old_ypos || '-' || chr(96 + H.new_xpos) || H.new_ypos || '</td></tr></table>'
-            piece
-          , GM_UTIL.time_ago(H.move_time) move_time
-  from gm_game_history H
-  left join gm_board_pieces P on H.piece_id = P.piece_id and H.game_id = P.game_id
-  where H.player > 0;
+  with history as (
+    select H.history_id
+            , H.game_id
+            --, H.piece_id
+            , '<table>' ||
+              '<tr>' ||
+              --'<td rowspan=2><b>' || H.history_id || '</b></td>' ||
+              -- show what happened
+                case 
+                when action='MOVE' then 
+                  '<td><div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || P.player || '" piece-name="' || lower(P.piece_type_code) || '"</div></td>' ||
+                  '<td>' || chr(96 + H.old_xpos)|| H.old_ypos || '-' || chr(96 + H.new_xpos) || H.new_ypos || '</td><td/><td/>'
+                when action='CAPTURE' then 
+                  '<td><div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || P.player || '" piece-name="' || lower(P.piece_type_code) || '"</div></td>' ||
+                  '<td>' || chr(96 + H.old_xpos)|| H.old_ypos || 'x' || chr(96 + H.new_xpos) || H.new_ypos ||
+                  '<td><div class="history-piece" id="Hpiece-' || H.action_piece || '" player="' || AP.player || '" piece-name="' || lower(AP.piece_type_code) || '"</div></td><td/>'
+                when action='CARD' then 
+                  '<td><div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || P.player || '" piece-name="' || lower(H.action_parameter) || '"</div></td>' ||
+                  '<td>' || 'CARD-' || ac.gamedef_card_code ||
+                  '<td><div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || P.player || '" piece-name="' || lower(P.piece_type_code) || '"</div></td>' ||
+                  '</td>'
+                end     
+                || '</tr></table>'
+              history_item
+    from gm_game_history H
+    left join gm_board_pieces P on H.piece_id = P.piece_id and H.game_id = P.game_id
+    left join gm_board_pieces AP on H.action_piece = AP.piece_id and H.game_id = AP.game_id
+    left join gm_board_cards AC on H.action_piece = AC.card_id and H.game_id = AC.game_id
+    where H.player > 0
+  )
+  select game_id, history_id, history_item
+  from history;
   /
+select * from gm_board_history_view order by history_id desc;
+select * from gm_game_history where player != -1 order by history_id desc;
+
+

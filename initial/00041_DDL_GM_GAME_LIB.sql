@@ -244,6 +244,7 @@ create or replace package body         GM_GAME_LIB as
     n_pieces number;
     v_player number;
     v_message varchar2(1000);
+    v_action varchar2(20);
     v_taken_piece_id number;
     v_taken_piece gm_board_pieces%rowtype;
     v_piece gm_board_pieces%rowtype;
@@ -272,6 +273,8 @@ create or replace package body         GM_GAME_LIB as
       and ypos=p_ypos
       and player <> v_player;
 
+    v_action := 'MOVE';
+    
     if v_taken_piece_id is not null then
       
       select *
@@ -283,9 +286,8 @@ create or replace package body         GM_GAME_LIB as
       update gm_board_pieces
       set status = 0, xpos = 0, ypos = 0
       where game_id = p_game_id and piece_id = v_taken_piece.piece_id;
-  
-      insert into gm_game_history(game_id,  piece_id, player,   old_xpos, old_ypos, new_xpos, new_ypos)
-                           values(p_game_id, v_taken_piece.piece_id, v_player, v_taken_piece.xpos, v_piece.ypos, 0, 0);
+      v_action := 'CAPTURE';
+      
     end if;
 
     -- Move piece
@@ -296,8 +298,8 @@ create or replace package body         GM_GAME_LIB as
       and not exists (select * from gm_board_pieces where game_id = p_game_id and xpos=p_xpos and ypos=p_ypos);
 
     -- update history table.
-    insert into gm_game_history(game_id,piece_id,player, old_xpos, old_ypos, new_xpos, new_ypos)
-                    values(p_game_id, p_piece_id, v_player, v_piece.xpos, v_piece.ypos, p_xpos, p_ypos);
+    insert into gm_game_history(game_id,piece_id,player, old_xpos, old_ypos, new_xpos, new_ypos, action, action_piece)
+                    values(p_game_id, p_piece_id, v_player, v_piece.xpos, v_piece.ypos, p_xpos, p_ypos, v_action, v_taken_piece.piece_id);
   
 
   end;

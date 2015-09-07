@@ -1028,18 +1028,18 @@ begin
         end;
         
     -- define each pice
-    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions ) 
-                                        values(fisher_game_code, 'PAWN', 'pawn', CANNOT_JUMP,  1, '^^:^: \:/','^:\:/','\/', '^');
-    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions  ) 
-                                        values(fisher_game_code, 'BISHOP', 'bishop', CANNOT_JUMP, 0, null, 'X',null, null);
-    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions  ) 
-                                        values(fisher_game_code, 'KNIGHT', 'knight', CAN_JUMP, 1, null, '^^>:^^<:vv<:vv>:>>^:>>v:<<^:<<v', null, null);
-    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions  ) 
-                                        values(fisher_game_code, 'ROOK', 'rook',  CANNOT_JUMP, 0, null, '+', null, null);
-    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions  ) 
-                                        values(fisher_game_code, 'QUEEN', 'queen', CANNOT_JUMP, 0, null, 'O', null, null);
-    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions  ) 
-                                        values(fisher_game_code, 'KING', 'king', CANNOT_JUMP, 1, null, 'O', null, null);
+    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, piece_notation, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions ) 
+                                        values(fisher_game_code, 'PAWN', 'pawn', 'P', CANNOT_JUMP,  1, '^^:^:\:/', '^:\:/','\/', '^');
+    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, piece_notation, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions  ) 
+                                        values(fisher_game_code, 'BISHOP', 'bishop', 'B', CANNOT_JUMP, 0, null, 'X',null, null);
+    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, piece_notation, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions  ) 
+                                        values(fisher_game_code, 'KNIGHT', 'knight', 'N',  CAN_JUMP, 1, null, '^^>:^^<:vv<:vv>:>>^:>>v:<<^:<<v', null, null);
+    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, piece_notation, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions  ) 
+                                        values(fisher_game_code, 'ROOK', 'rook',  'R', CANNOT_JUMP, 0, null, '+', null, null);
+    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, piece_notation, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions  ) 
+                                        values(fisher_game_code, 'QUEEN', 'queen', 'Q', CANNOT_JUMP, 0, null, 'O', null, null);
+    insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, piece_notation, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions  ) 
+                                        values(fisher_game_code, 'KING', 'king', 'K', CANNOT_JUMP, 1, null, 'O', null, null);
         -- define piece locations
         -- Place white pieces
         for i in 1 .. length(game.starting_position) loop

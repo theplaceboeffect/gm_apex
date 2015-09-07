@@ -100,6 +100,7 @@ as
   v_card_id number;
   v_piece_id number;
   v_player number;
+  v_old_piece_type_code varchar(10);
   card_def gm_gamedef_cards%rowtype;
   piece gm_board_pieces%rowtype;
 begin 
@@ -119,7 +120,7 @@ begin
     -- TODO: Verify that the piece being replaced matches the card used_for_piece_type_code
   
     -- Retrieve the piece to apply the card onto
-    select P.piece_id into v_piece_id
+    select P.piece_id,  P.piece_type_code into v_piece_id, v_old_piece_type_code
     from gm_board_pieces P
     where P.xpos = p_xpos and P.ypos = p_ypos and P.game_id = p_game_id;
 
@@ -134,14 +135,16 @@ begin
     where C.game_id = p_game_id and C.card_id = v_card_id;
   
     -- Record card use.
-    insert into gm_game_history(game_id,  piece_id, player, old_xpos, old_ypos, new_xpos, new_ypos)
-                           values(p_game_id, v_piece_id, v_player , p_xpos, p_ypos, 0, 0);
+    insert into gm_game_history(game_id,  piece_id, card_id, player, old_xpos, old_ypos, new_xpos, new_ypos, action, action_piece, action_parameter)
+                           values(p_game_id, v_piece_id, v_card_id, v_player , p_xpos, p_ypos, 0, 0, 'CARD', v_card_id, v_old_piece_type_code);
   end if;
 
 end;
 /
 delete from gm_gamedef_cards;
 delete from gm_board_cards;
+
+
 insert into gm_gamedef_cards(gamedef_card_code, gamedef_code, used_for_class, used_for_piece_type_code, used_for_player, card_name, card_description, parameter1, routine) 
                       values('OP2B', 'CHESS%', 'PIECE','PAWN', 'OWN', 'Pawn To Bishop', 'Change one of your Pawns into a Bishop.', 'BISHOP', 'REPLACE');
 insert into gm_gamedef_cards(gamedef_card_code, gamedef_code, used_for_class, used_for_piece_type_code, used_for_player, card_name, card_description, parameter1, routine)
@@ -162,24 +165,24 @@ insert into gm_gamedef_cards(gamedef_card_code, gamedef_code, used_for_class, us
 insert into gm_gamedef_cards(gamedef_card_code, gamedef_code, used_for_class, used_for_piece_type_code, used_for_player, card_name, card_description, parameter1, routine)
                       values('AA2P', 'CHESS%', 'PIECE','ANY', 'ANY', 'Any To Pawn', 'Change any piece into a pawn.', 'PAWN', 'REPLACE');
 
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(3, 1, 1, 'OP2B');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(3, 2, 1, 'OP2N');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(3, 3, 1, 'OP2R');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(3, 4, 1, 'OP2Q');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 1, 1, 'OP2B');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 2, 1, 'OP2N');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 3, 1, 'OP2R');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 4, 1, 'OP2Q');
 
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(3, 5, 1, 'OA2P');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(3, 6, 1, 'OA2P');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(3, 7, 1, 'NA2P');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(3, 8, 1, 'OA2Q');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(3, 16, 1, 'OB2Q');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 5, 1, 'OA2P');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 6, 1, 'OA2P');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 7, 1, 'NA2P');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 8, 1, 'OA2Q');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 16, 1, 'OB2Q');
 
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(3, 9, 2, 'OA2P');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(3, 10, 2, 'OA2Q');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(3, 11, 2, 'OB2Q');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(3, 12, 2, 'NA2P');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(3, 13, 2, 'AA2P');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 9, 2, 'OA2P');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 10, 2, 'OA2Q');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 11, 2, 'OB2Q');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 12, 2, 'NA2P');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 13, 2, 'AA2P');
 
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(3, 14, 0, 'OP2R');
-insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(3, 15, 0, 'OP2R');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 14, 0, 'OP2R');
+insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(1, 15, 0, 'OP2R');
 commit;
 /

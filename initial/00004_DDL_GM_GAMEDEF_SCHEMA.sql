@@ -42,6 +42,8 @@ create table gm_gamedef_piece_types
   piece_type_code varchar2(8),
 
   piece_name varchar2(50),
+  piece_notation varchar2(1),
+  
   n_steps_per_move number,
   can_jump number,
   first_move varchar2(50),
