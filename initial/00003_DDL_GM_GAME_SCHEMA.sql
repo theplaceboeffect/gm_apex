@@ -1,5 +1,5 @@
 /**** GM_GAME_SCHEMA ****/
-
+drop table gm_css;
 drop table gm_game_history;
 drop table gm_piece_types;
 drop table gm_board_pieces;
@@ -90,8 +90,10 @@ create table gm_board_pieces
   status number,
 
   constraint board_pieces_id_pk primary key (game_id, piece_id),
+  constraint board_pieces_piece_type_fk foreign key (game_id, piece_type_code) references gm_piece_types(game_id, piece_type_code),
   constraint board_pieces_game_id_fk foreign key (game_id) references gm_games(game_id)
 );
+
 /
 create sequence gm_board_pieces_id;
 /
@@ -127,4 +129,14 @@ begin
     select gm_game_history_seq.nextval into :new.history_id from dual;
   end if;
 end;
+/
+create table gm_css
+(
+  css_id number,
+  css_selector varchar2(100),
+  css_declaration_block varchar2(1000),
+  
+  constraint gm_css_pk primary key(css_id),
+  constraint gm_css_unique_selector unique(css_selector)
+);
 /

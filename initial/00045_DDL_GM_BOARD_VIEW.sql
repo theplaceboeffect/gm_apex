@@ -1,3 +1,19 @@
+/**** GENERAL CSS ****/
+
+delete from gm_css;
+/
+insert into gm_css(css_id, css_selector, css_declaration_block) values (110, '[type="card"]','{ background-color:yellow; height:45px; width:130px; }');
+insert into gm_css(css_id, css_selector, css_declaration_block) values (120, '.card[card-action="REPLACE"]', '{align: center; background-color: #E7D0DB;color: #85144b;font-weight: bold;border-radius: 10px;border: solid 2px;border-color: #85144b; height:45px; width:130px; text-align: center; }');
+insert into gm_css(css_id, css_selector, css_declaration_block) values (121, '.card[card-action="BOARD_CHANGE"]', '{background-color: #808F9F; color:#001f3f ;font-weight: bold;border-radius: 10px;border: solid 2px;border-color: #001f3f; height:45px; width:130px; text-align: center; }');
+insert into gm_css(css_id, css_selector, css_declaration_block) values (129, '.card-location', '{ background-color:white; height:45px; width:130px; border: 0px }'); 
+insert into gm_css(css_id, css_selector, css_declaration_block) values (130, '.history-piece','{height:25px; width:25px; background-size:25px 25px;}');
+insert into gm_css(css_id, css_selector, css_declaration_block) values (131, '.card-piece','{height:35px; width:35px; background-size:35px 35px;}');
+insert into gm_css(css_id, css_selector, css_declaration_block) values (140, '.card-piece[player="1"][piece-name="any"]', '{background-image: url("https://upload.wikimedia.org/wikipedia/commons/6/65/White_Stars_1.svg");}');
+insert into gm_css(css_id, css_selector, css_declaration_block) values (141, '.card-piece[player="2"][piece-name="any"]', '{background-image: url("https://upload.wikimedia.org/wikipedia/commons/c/c8/Black_Star.svg");}');
+insert into gm_css(css_id, css_selector, css_declaration_block) values (142, '.card-piece[player="0"][piece-name="any"]', '{background-image: url("https://upload.wikimedia.org/wikipedia/commons/1/17/Yin_yang.svg");}');
+commit;
+/
+
 /**** GM_BOARD_VIEW ****/
 CREATE OR REPLACE FORCE VIEW gm_board_view as
   with pieces as (
@@ -10,7 +26,7 @@ CREATE OR REPLACE FORCE VIEW gm_board_view as
                 P.status ,
                 T.piece_name
         from gm_board_pieces P
-        join gm_piece_types T on P.piece_type_code = T.piece_type_code and P.game_id = T.game_id
+        join gm_piece_types T on P.piece_type_code = T.piece_type_code and P.game_id = T.game_id and P.status <> 0
       )
       , occupied_rows as (
         select distinct R.game_id, R.ypos
@@ -18,14 +34,14 @@ CREATE OR REPLACE FORCE VIEW gm_board_view as
       )
       ,board as (
         select R.game_id, R.ypos ypos, 
-           gm_game_lib.format_piece(R.game_id, X1.piece_id, X1.player, X1.piece_name, 1, R.ypos) cell_1,
-           gm_game_lib.format_piece(R.game_id, X2.piece_id, X2.player, X2.piece_name, 2, R.ypos) cell_2,
-           gm_game_lib.format_piece(R.game_id, X3.piece_id, X3.player, X3.piece_name, 3, R.ypos) cell_3,
-           gm_game_lib.format_piece(R.game_id, X4.piece_id, X4.player, X4.piece_name, 4, R.ypos) cell_4,
-           gm_game_lib.format_piece(R.game_id, X5.piece_id, X5.player, X5.piece_name, 5, R.ypos) cell_5,
-           gm_game_lib.format_piece(R.game_id, X6.piece_id, X6.player, X6.piece_name, 6, R.ypos) cell_6,
-           gm_game_lib.format_piece(R.game_id, X7.piece_id, X7.player, X7.piece_name, 7, R.ypos) cell_7,
-           gm_game_lib.format_piece(R.game_id, X8.piece_id, X8.player, X8.piece_name, 8, R.ypos) cell_8
+           gm_piece_lib.format_piece(R.game_id, X1.piece_id, X1.player, X1.piece_name, 1, R.ypos) cell_1,
+           gm_piece_lib.format_piece(R.game_id, X2.piece_id, X2.player, X2.piece_name, 2, R.ypos) cell_2,
+           gm_piece_lib.format_piece(R.game_id, X3.piece_id, X3.player, X3.piece_name, 3, R.ypos) cell_3,
+           gm_piece_lib.format_piece(R.game_id, X4.piece_id, X4.player, X4.piece_name, 4, R.ypos) cell_4,
+           gm_piece_lib.format_piece(R.game_id, X5.piece_id, X5.player, X5.piece_name, 5, R.ypos) cell_5,
+           gm_piece_lib.format_piece(R.game_id, X6.piece_id, X6.player, X6.piece_name, 6, R.ypos) cell_6,
+           gm_piece_lib.format_piece(R.game_id, X7.piece_id, X7.player, X7.piece_name, 7, R.ypos) cell_7,
+           gm_piece_lib.format_piece(R.game_id, X8.piece_id, X8.player, X8.piece_name, 8, R.ypos) cell_8
         from occupied_rows R
           left join pieces X1 on R.game_id = X1.game_id and X1.xpos=1 and R.ypos = X1.ypos and X1.status <> 0
           left join pieces X2 on R.game_id = X2.game_id and X2.xpos=2 and R.ypos = X2.ypos and X2.status <> 0
@@ -57,7 +73,6 @@ CREATE OR REPLACE FORCE VIEW gm_board_view as
     left join board P on S.game_id = P.game_id and S.ypos = P.ypos and S.game_id=P.game_id
     ;
 /
-
 create or replace view gm_board_css as
   select css, display_order 
   from (
@@ -69,15 +84,11 @@ create or replace view gm_board_css as
     -- Board CSS
     select '[summary="GameBoard"] td {    padding: 0px 0px 0px 0px;}' css, 10 display_order from dual
     union all
-    select '.board-location {  height:' || v('P1_SQUARE_SIZE') || 'px;  width:' || v('P1_SQUARE_SIZE') || 'px;}' css, 10 display_order from dual
+    select '.board-location {  position: relative; height:' || v('P1_SQUARE_SIZE') || 'px;  width:' || v('P1_SQUARE_SIZE') || 'px;}' css, 10 display_order from dual
     union all
     select '.game-piece {height:' || v('P1_SQUARE_SIZE') || 'px;width:' || v('P1_SQUARE_SIZE') || 'px;background-size: ' || v('P1_SQUARE_SIZE') || 'px ' || v('P1_SQUARE_SIZE') || 'px;}' css, 10 display_order from dual
     union all
-    select '[type="card"] { background-color: yellow; height:30px; width: 100px; }', 10 display_order from dual
-    union all
-    select '.card-location { background-color: red; height:"30px"; width: "100px"; }', 10 display_order from dual
-    union all
-    select '.history-piece {height:25px;width:25px;background-size: 25px 25px;}' css, 10 display_order from dual
+    select css_selector || css_declaration_block,css_id display_order from gm_css 
     union all
     -- GameDef CSS
     select css_selector || ' ' || css_definition board_css, css_order display_order
@@ -90,7 +101,6 @@ create or replace view gm_board_css as
   order by display_order
   ;
 /
-
 create or replace view gm_board_history_view as
   with history as (
     select H.history_id
@@ -103,16 +113,15 @@ create or replace view gm_board_history_view as
                 case 
                 when action='MOVE' then 
                   '<td><div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || P.player || '" piece-name="' || lower(P.piece_type_code) || '"</div></td>' ||
-                  '<td>' || chr(96 + H.old_xpos)|| H.old_ypos || '-' || chr(96 + H.new_xpos) || H.new_ypos || '</td><td/><td/>'
+                  '<td>' || chr(96 + H.old_xpos)|| H.old_ypos || '-' || chr(96 + H.new_xpos) || H.new_ypos || '</td>'
                 when action='CAPTURE' then 
                   '<td><div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || P.player || '" piece-name="' || lower(P.piece_type_code) || '"</div></td>' ||
                   '<td>' || chr(96 + H.old_xpos)|| H.old_ypos || 'x' || chr(96 + H.new_xpos) || H.new_ypos ||
-                  '<td><div class="history-piece" id="Hpiece-' || H.action_piece || '" player="' || AP.player || '" piece-name="' || lower(AP.piece_type_code) || '"</div></td><td/>'
+                  '<td><div class="history-piece" id="Hpiece-' || H.action_piece || '" player="' || AP.player || '" piece-name="' || lower(AP.piece_type_code) || '"</div></td>'
                 when action='CARD' then 
                   '<td><div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || P.player || '" piece-name="' || lower(H.action_parameter) || '"</div></td>' ||
                   '<td>' || 'CARD-' || ac.gamedef_card_code ||
-                  '<td><div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || P.player || '" piece-name="' || lower(P.piece_type_code) || '"</div></td>' ||
-                  '</td>'
+                  '<td><div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || P.player || '" piece-name="' || lower(P.piece_type_code) || '"</div></td>'
                 end     
                 || '</tr></table>'
               history_item
@@ -125,7 +134,5 @@ create or replace view gm_board_history_view as
   select game_id, history_id, history_item
   from history;
   /
-select * from gm_board_history_view order by history_id desc;
-select * from gm_game_history where player != -1 order by history_id desc;
 
 
