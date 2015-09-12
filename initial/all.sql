@@ -58,11 +58,11 @@ create or replace view l as select * from log_data order by id desc;
 /**** GM_GAME_SCHEMA ****/
 drop table gm_css;
 drop table gm_game_history;
-drop table gm_piece_types;
 drop table gm_board_pieces;
+drop table gm_piece_types;
 drop table gm_board_states;
 drop table gm_boards;
-drop table GM_GAMES;
+drop table gm_games;
 
 drop sequence gm_piece_types_seq;
 drop sequence GM_GAMES_seq;
@@ -75,6 +75,7 @@ create table  gm_games
   game_id number,
   player1 nvarchar2(50),
   player2 nvarchar2(50),
+  current_player number,
   gamestart_timestamp date,
 --  lastmove_timestamp date,
 --  lastmove_count number,
@@ -420,97 +421,6 @@ create table GM_BOARD_CARDS
   constraint gm_board_cards_carddef_fk foreign key(gamedef_card_code) references GM_GAMEDEF_CARDS(gamedef_card_code)
 );
 /
-create or replace view gm_board_piece_locs_view as
-  with individual_pieces as (
-    select game_id, player, piece_type_code, listagg('loc-' || xpos||'-'||ypos,':') within group(order by xpos) board_locations
-    from gm_board_pieces P 
-    where status=1 and P.piece_type_code not in ('KING')
-    group by game_id, player, piece_type_code
-  ),
-  own_players_pieces as (
-    select game_id, player, 'OWN' piece_type_code, listagg('loc-' || xpos||'-'||ypos,':') within group(order by xpos) board_locations
-    from gm_board_pieces P
-    where status=1 and P.piece_type_code not in ('KING')
-    group by game_id, player
-  ),
-  any_players_pieces as (
-    select game_id, 0 player, 'ANY' piece_type_code, listagg(board_locations,':') within group(order by game_id) board_locations
-    from individual_pieces
-    group by game_id
-  ),
-  board_rows as (
-    select to_number(nvl(v('P1_GAME_ID'),0)) game_id, rownum r 
-    from gm_board_pieces P 
-    where rownum <=  nvl( (select B.max_cols from gm_boards B where B.game_id=v('P1_GAME_ID')),8)
-  ),
-  board_cols as (
-    select nvl(v('P1_GAME_ID'),0) game_id, rownum c 
-    from gm_board_pieces P 
-    where rownum <=  nvl( (select B.max_rows from gm_boards B where B.game_id=v('P1_GAME_ID')),8)
-  ),
-  empty_squares as (
-    select BR.game_id, 'loc-' || bc.c || '-' || br.r board_location 
-    from board_rows BR cross join board_cols BC 
-    where (c,r) not in (select xpos,ypos from gm_board_pieces where game_id=v('P1_GAME_ID') and status>0)
-  )
-
-  select game_id, 0 player, 'EMPTY' piece_type_code, listagg(board_location,':') within group(order by board_location) board_locations 
-  from empty_squares
-  group by game_id
-  union all
-  select game_id, player, piece_type_code, board_locations
-  from individual_pieces 
-  union all
-  select game_id, player, piece_type_code, board_locations
-  from own_players_pieces
-  union all
-  select game_id, player, piece_type_code, board_locations
-  from any_players_pieces
-  ;
-  select * from gm_board_piece_locs_view;
-/
-create or replace view gm_board_cards_view as
-  select C.gamedef_card_code, C.card_id, C.player, C.game_id, CD.used_for_class, CD.used_for_piece_type_code, CD.card_name, CD.card_description,
-          '<div class="card-location" id="card-loc-' || C.card_id || '">' || 
-          ' <div class="card" type="card" id="card-' || C.card_id || '"'
-          || ' card-action="' || CD.routine || '"'
-          || ' positions="' || L.board_locations || '"'
-          || '>'
-          || case 
-          
-             when CD.gamedef_card_code='RMSQ' then
-              '<i class="fa fa-lock fa-3x"></i>' || CD.card_description
-             when CD.gamedef_card_code='MKSQ' then
-              '<i class="fa fa-square-o fa-3x"/></i>' || ' ' ||  CD.card_description
-
-            when CD.routine = 'REPLACE' then
-              '<table><tr>'
-              || '<td><div class="card-piece" player=' || decode(CD.used_for_player, 'OWN', C.player, 'NME', 3-C.player, 'ANY', 0) || ' piece-name="' || lower(CD.used_for_piece_type_code) ||'" ></div></td>'
-              || '<td>' || CD.gamedef_card_code || '</td>'
-              || case when CD.used_for_player = 'ANY' then
-                        '<td><div class="card-piece" player=' || C.player || ' piece-name="'|| lower(CD.parameter1) || '" ></div>'
-                      || '<td><div class="card-piece" player=' || (3-C.player) || ' piece-name="'|| lower(CD.parameter1) || '" ></div>'
-                  else
-                      '<td><div class="card-piece" player=' || decode(CD.used_for_player, 'OWN', C.player, 'NME', 3-C.player, 'ANY', 0) || ' piece-name="'|| lower(CD.parameter1) || '" ></div></td>'
-                  end
-              || '</tr></table>'
-            else
-              CD.gamedef_card_code
-            end
-          || '</div></div>' value,
-          CD.card_name label
-from gm_board_cards C
-left join gm_gamedef_cards CD on C.gamedef_card_code = CD.gamedef_card_code
-left join gm_board_piece_locs_view L on 
-  C.game_id = L.game_id
-  -- Logic to handle whether we are choosing ANY piece on the board, our OWN piece's or the opponent's (NME's)
-  and case when CD.used_for_piece_type_code='ANY' and CD.used_for_player != 'ANY' then 'OWN' 
-            else CD.used_for_piece_type_code end 
-            = L.piece_type_code 
-  and decode(CD.used_for_player, 'ANY', 0, 'OWN', C.player, 'NME', 3-C.player,'NONE', 0, 'SYS', 3) = L.player
-where C.player > 0
-;
-/
 alter session set current_schema=apex_gm;
 
 create or replace package GM_LOGIN_LIB as
@@ -639,12 +549,14 @@ create or replace package body GM_GAME_LIB as
   as
   begin
     gm_card_lib.process_card(p_game_id, p_piece_id, p_xpos, p_ypos);
+    update gm_games set current_player = 3 - current_player where game_id = p_game_id;
   end move_card;
 
   procedure move_piece(p_game_id number, p_piece_id number, p_xpos number, p_ypos number)
   as
   begin
     gm_piece_lib.move_piece(p_game_id, p_piece_id, p_xpos, p_ypos);
+    update gm_games set current_player = 3 - current_player where game_id = p_game_id;
   end move_piece;
   
 
@@ -655,8 +567,8 @@ create or replace package body GM_GAME_LIB as
     v_game_id number;
   begin
     select gm_games_seq.nextval into v_game_id from sys.dual;  
-    insert into gm_games(game_id,   player1,  player2) 
-                  values(v_game_id, p_player1, p_player2);
+    insert into gm_games(game_id,   player1,  player2, current_player) 
+                  values(v_game_id, p_player1, p_player2, 1);
     
     if p_game_type = 'FISHER' then 
       gm_gamedef_lib.create_board(v_game_id, p_fisher_game);
@@ -667,6 +579,7 @@ create or replace package body GM_GAME_LIB as
     -- initialise cards.
     gm_card_lib.cards_init;
     gm_card_lib.board_init(v_game_id);
+    
     
     -- update history table.
     insert into gm_game_history(game_id,piece_id,player, old_xpos, old_ypos, new_xpos, new_ypos)
@@ -2815,10 +2728,10 @@ begin
       raise_application_error(-20001,'An error was encountered - '||SQLCODE||' -ERROR- '||SQLERRM);
 end;
 /
-exec populate_fisher_table;
-exec populate_fisher_games;
-/
-commit;
+--exec populate_fisher_table;
+--exec populate_fisher_games;
+--/
+--commit;
 /
 delete from gm_gamedef_piece_types where piece_type_code='LOCK';
 insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, piece_notation, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions  ) 
@@ -2956,4 +2869,99 @@ create or replace package body gm_card_lib as
   
   end;
 end gm_card_lib;
+/
+
+
+create or replace view gm_board_piece_locs_view as
+  with individual_pieces as (
+    select game_id, player, piece_type_code, listagg('loc-' || xpos||'-'||ypos,':') within group(order by xpos) board_locations
+    from gm_board_pieces P 
+    where status=1 and P.piece_type_code not in ('KING')
+    group by game_id, player, piece_type_code
+  ),
+  own_players_pieces as (
+    select game_id, player, 'OWN' piece_type_code, listagg('loc-' || xpos||'-'||ypos,':') within group(order by xpos) board_locations
+    from gm_board_pieces P
+    where status=1 and P.piece_type_code not in ('KING')
+    group by game_id, player
+  ),
+  any_players_pieces as (
+    select game_id, 0 player, 'ANY' piece_type_code, listagg(board_locations,':') within group(order by game_id) board_locations
+    from individual_pieces
+    group by game_id
+  ),
+  board_rows as (
+    select to_number(nvl(v('P1_GAME_ID'),0)) game_id, rownum r 
+    from gm_board_pieces P 
+    where rownum <=  nvl( (select B.max_cols from gm_boards B where B.game_id=v('P1_GAME_ID')),8)
+  ),
+  board_cols as (
+    select nvl(v('P1_GAME_ID'),0) game_id, rownum c 
+    from gm_board_pieces P 
+    where rownum <=  nvl( (select B.max_rows from gm_boards B where B.game_id=v('P1_GAME_ID')),8)
+  ),
+  empty_squares as (
+    select BR.game_id, 'loc-' || bc.c || '-' || br.r board_location 
+    from board_rows BR cross join board_cols BC 
+    where (c,r) not in (select xpos,ypos from gm_board_pieces where game_id=v('P1_GAME_ID') and status>0)
+  )
+
+  select game_id, 0 player, 'EMPTY' piece_type_code, listagg(board_location,':') within group(order by board_location) board_locations 
+  from empty_squares
+  group by game_id
+  union all
+  select game_id, player, piece_type_code, board_locations
+  from individual_pieces 
+  union all
+  select game_id, player, piece_type_code, board_locations
+  from own_players_pieces
+  union all
+  select game_id, player, piece_type_code, board_locations
+  from any_players_pieces
+  ;
+/
+create or replace view gm_board_cards_view as
+  select C.gamedef_card_code, C.card_id, C.player, C.game_id, CD.used_for_class, CD.used_for_piece_type_code, CD.card_name, CD.card_description,
+          '<div class="card-location" id="card-loc-' || C.card_id || '">' || 
+          ' <div class="card" type="card" id="card-' || C.card_id || '"'
+          || ' player="' || C.player || '"'
+          || ' card-action="' || CD.routine || '"'
+          || ' positions="' || L.board_locations || '"'
+          || '>'
+          || case 
+          
+             when CD.gamedef_card_code='RMSQ' then
+              '<i class="fa fa-lock fa-3x"></i>' || CD.card_description
+             when CD.gamedef_card_code='MKSQ' then
+              '<i class="fa fa-square-o fa-3x"/></i>' || ' ' ||  CD.card_description
+
+            when CD.routine = 'REPLACE' then
+              '<table><tr>'
+              || '<td><div class="card-piece" player=' || decode(CD.used_for_player, 'OWN', C.player, 'NME', 3-C.player, 'ANY', 0) 
+              || ' piece-name="' || lower(CD.used_for_piece_type_code) ||'" ></div></td>'
+              || '<td>' || CD.gamedef_card_code || '</td>'
+              || case when CD.used_for_player = 'ANY' then
+                        '<td><div class="card-piece" player=' || 2 || ' piece-name="'|| lower(CD.parameter1) || '" ></div>'
+                        ||'<div " class="card-piece" player=' || 1 || ' piece-name="'|| lower(CD.parameter1) || '" ></div></td>'
+                  else
+                      '<td><div class="card-piece" player=' || decode(CD.used_for_player, 'OWN', C.player, 'NME', 3-C.player, 'ANY', 0) 
+                      || ' piece-name="'|| lower(CD.parameter1) || '" ></div></td>'
+                  end
+              || '</tr></table>'
+            else
+              CD.gamedef_card_code
+            end
+          || '</div></div>' value,
+          CD.card_name label
+from gm_board_cards C
+left join gm_gamedef_cards CD on C.gamedef_card_code = CD.gamedef_card_code
+left join gm_board_piece_locs_view L on 
+            C.game_id = L.game_id
+            -- Logic to handle whether we are choosing ANY piece on the board, our OWN piece's or the opponent's (NME's)
+            and case when CD.used_for_piece_type_code='ANY' and CD.used_for_player != 'ANY' then 'OWN' 
+                      else CD.used_for_piece_type_code end 
+                      = L.piece_type_code 
+  and decode(CD.used_for_player, 'ANY', 0, 'OWN', C.player, 'NME', 3-C.player,'NONE', 0, 'SYS', 3) = L.player
+where C.player > 0
+;
 /

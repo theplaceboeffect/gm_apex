@@ -1099,8 +1099,8 @@ begin
       raise_application_error(-20001,'An error was encountered - '||SQLCODE||' -ERROR- '||SQLERRM);
 end;
 /
-exec populate_fisher_table;
-exec populate_fisher_games;
-/
-commit;
+--exec populate_fisher_table;
+--exec populate_fisher_games;
+--/
+--commit;
 /

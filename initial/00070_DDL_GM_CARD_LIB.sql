@@ -104,11 +104,14 @@ create or replace package body gm_card_lib as
       
       insert into gm_game_history(game_id,  piece_id, card_id, player, old_xpos, old_ypos, new_xpos, new_ypos, action, action_piece, action_parameter)
                              values(p_game_id, v_piece_id, v_card_id, v_player , p_xpos, p_ypos, 0, 0, 'CARD', v_card_id, v_old_piece_type_code);
+                             
+
     elsif card_def.gamedef_card_code = 'MKSQ' then
       update gm_board_pieces set xpos=0,ypos=0,status=0 where game_id=p_game_id and xpos=p_xpos and ypos=p_ypos;  
     
       insert into gm_game_history(game_id,  piece_id, card_id, player, old_xpos, old_ypos, new_xpos, new_ypos, action, action_piece, action_parameter)
                              values(p_game_id, v_piece_id, v_card_id, v_player , p_xpos, p_ypos, 0, 0, 'CARD', v_card_id, v_old_piece_type_code);
+
     elsif card_def.routine = 'REPLACE' then
       -- TODO: Verify that the piece being replaced matches the card used_for_piece_type_code
     
@@ -122,16 +125,17 @@ create or replace package body gm_card_lib as
       set p.piece_type_code = card_def.parameter1
       where P.piece_id = v_piece_id;
     
-      -- Consume card.
-      update gm_board_cards C
-      set player = 0
-      where C.game_id = p_game_id and C.card_id = v_card_id;
-    
-      -- Record card use.
-      insert into gm_game_history(game_id,  piece_id, card_id, player, old_xpos, old_ypos, new_xpos, new_ypos, action, action_piece, action_parameter)
-                             values(p_game_id, v_piece_id, v_card_id, v_player , p_xpos, p_ypos, 0, 0, 'CARD', v_card_id, v_old_piece_type_code);
     
     end if;
+/* TODO: Put this back before release!
+    -- Consume card.
+    update gm_board_cards C
+    set player = 0
+    where C.game_id = p_game_id and C.card_id = v_card_id;
+ */
+    -- Record card use.
+    insert into gm_game_history(game_id,  piece_id, card_id, player, old_xpos, old_ypos, new_xpos, new_ypos, action, action_piece, action_parameter)
+                           values(p_game_id, v_piece_id, v_card_id, v_player , p_xpos, p_ypos, 0, 0, 'CARD', v_card_id, v_old_piece_type_code);
   
   end;
 end gm_card_lib;

@@ -1,11 +1,11 @@
 /**** GM_GAME_SCHEMA ****/
 drop table gm_css;
 drop table gm_game_history;
-drop table gm_piece_types;
 drop table gm_board_pieces;
+drop table gm_piece_types;
 drop table gm_board_states;
 drop table gm_boards;
-drop table GM_GAMES;
+drop table gm_games;
 
 drop sequence gm_piece_types_seq;
 drop sequence GM_GAMES_seq;
@@ -18,6 +18,7 @@ create table  gm_games
   game_id number,
   player1 nvarchar2(50),
   player2 nvarchar2(50),
+  current_player number,
   gamestart_timestamp date,
 --  lastmove_timestamp date,
 --  lastmove_count number,
