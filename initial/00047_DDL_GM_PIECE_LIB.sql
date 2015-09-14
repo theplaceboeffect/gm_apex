@@ -274,7 +274,11 @@ create or replace package body GM_PIECE_LIB as
   function format_piece(p_game_id number, p_piece_id number, p_player_number number, p_piece_name nvarchar2, p_xpos number, p_ypos number) return nvarchar2 as
     v_piece_moves nvarchar2(1000);
     v_attacked_by nvarchar2(100);
+    v_current_player number;
   begin
+    -- TODO: refactor
+    select current_player into v_current_player from gm_games where game_id=p_game_id;
+    
     if p_piece_id is null then 
       return ' ';
     else
@@ -308,6 +312,7 @@ create or replace package body GM_PIECE_LIB as
                                 || '" class="game-piece" type="game-piece"' 
                                 || '" positions="' || v_piece_moves || '"'
                                 || ' attacked_by="' || nvl(v_attacked_by,'') || '"'
+                                || ' is_current_player="' || case when p_player_number = v_current_player then 'Y' else 'N' end || '"'
                                 --|| '" positions2="' || calc_valid_squares(p_game_id, p_piece_id)
                                 || '"/>';  
     end if;
@@ -332,6 +337,7 @@ create or replace package body GM_PIECE_LIB as
     v_xpos number;
     v_ypos number;
     v_exists number;
+    v_piece_id number;
   begin
 
     if APEX_COLLECTION.COLLECTION_EXISTS (p_collection_name => 'GAME_STATE') = true then
@@ -370,8 +376,7 @@ create or replace package body GM_PIECE_LIB as
       end if; /* if moves is not null */
     end loop;
 
-    -- Kings cannot move into check - non-pawns
-
+    -- Kings cannot move into check - non-pawns attack along their lines of movement.
     for M in (
       select seq_id
       from gm_piece_moves P
@@ -402,7 +407,24 @@ create or replace package body GM_PIECE_LIB as
     ) loop
           apex_collection.delete_member(p_collection_name => 'GAME_STATE', p_seq => M.seq_id);
     end loop;
-  
+    
+    -- If the King has no moves then it is CHECK-MATE!
+    select count(*) into v_move from gm_piece_moves where game_id = p_game_id and piece_type_code='KING' and player=1;
+    select xpos, ypos, piece_id into v_xpos, v_ypos, v_piece_id from gm_board_pieces where game_id = p_game_id and piece_type_code='KING' and player=1;
+    if v_move = 0 then
+      apex_collection.add_member(p_collection_name => 'GAME_STATE', 
+                                          p_c001 => p_game_id, 
+                                          p_c002 => 'KING',
+                                          p_c003 => 'checkmate',
+                                          p_c004 => calc_valid_squares(p_game_id, v_piece_id),
+    
+                                          p_n001 => v_piece_id,
+                                          p_n002 => 1,
+                                          p_n003 => p_game_id,
+                                          p_n004 => v_xpos,
+                                          P_n005 => v_ypos
+                                          );
+    end if;
   end generate_piece_moves;
 
 end GM_PIECE_LIB;

@@ -646,9 +646,8 @@ insert into gm_css(css_id, css_selector, css_declaration_block) values (122, '.c
 insert into gm_css(css_id, css_selector, css_declaration_block) values (129, '.card-location', '{ background-color:white; height:45px; width:130px; border: 0px }'); 
 insert into gm_css(css_id, css_selector, css_declaration_block) values (130, '.history-piece','{height:25px; width:25px; background-size:25px 25px;}');
 insert into gm_css(css_id, css_selector, css_declaration_block) values (131, '.card-piece','{height:35px; width:35px; background-size:35px 35px;}');
-insert into gm_css(css_id, css_selector, css_declaration_block) values (132,'#player_icon_1','{width:50px;height:50px;}');
-insert into gm_css(css_id, css_selector, css_declaration_block) values (133,'#player_icon_2','{width:50px;height:50px;}');
-
+insert into gm_css(css_id, css_selector, css_declaration_block) values (132,'#player_icon_1','{width:50px;height:54px;}');
+insert into gm_css(css_id, css_selector, css_declaration_block) values (133,'#player_icon_2','{width:50px;height:54px;}');
 insert into gm_css(css_id, css_selector, css_declaration_block) values (140, '.card-piece[player="1"][piece-name="any"]', '{background-image: url("https://upload.wikimedia.org/wikipedia/commons/6/65/White_Stars_1.svg");}');
 insert into gm_css(css_id, css_selector, css_declaration_block) values (141, '.card-piece[player="2"][piece-name="any"]', '{background-image: url("https://upload.wikimedia.org/wikipedia/commons/c/c8/Black_Star.svg");}');
 insert into gm_css(css_id, css_selector, css_declaration_block) values (142, '.card-piece[player="0"][piece-name="any"]', '{background-image: url("https://upload.wikimedia.org/wikipedia/commons/1/17/Yin_yang.svg");}');
@@ -775,12 +774,29 @@ create or replace view gm_board_history_view as
   select game_id, history_id, history_item
   from history;
 /
+create or replace view gm_board_history_list as
+  with white_moves as (
+    select game_id, rownum r, history_item
+    from gm_board_history_view
+    where game_id=v('P1_GAME_ID') and mod(history_id,2) = 0
+    order by history_id
+  ),
+  black_moves as (
+    select rownum r, history_item
+    from gm_board_history_view
+    where game_id=v('P1_GAME_ID') and mod(history_id,2) = 1
+    order by history_id
+  )
+  select W.r, W.history_item white_move, B.history_item black_move
+  from white_moves W
+  left join black_moves B on W.r = B.r;
 
+/
 create or replace view gm_piece_moves as
     select collection_name, seq_id, c001 piece_type_code, 
             n001 game_id, n002 piece_id, n003 player, 
             n004 xpos, n005 ypos,
-            c002 piece_move,
+            c002 piece_move
     from apex_collections 
     where collection_name='GAME_STATE';
 /
@@ -1060,7 +1076,11 @@ create or replace package body GM_PIECE_LIB as
   function format_piece(p_game_id number, p_piece_id number, p_player_number number, p_piece_name nvarchar2, p_xpos number, p_ypos number) return nvarchar2 as
     v_piece_moves nvarchar2(1000);
     v_attacked_by nvarchar2(100);
+    v_current_player number;
   begin
+    -- TODO: refactor
+    select current_player into v_current_player from gm_games where game_id=p_game_id;
+    
     if p_piece_id is null then 
       return ' ';
     else
@@ -1094,6 +1114,7 @@ create or replace package body GM_PIECE_LIB as
                                 || '" class="game-piece" type="game-piece"' 
                                 || '" positions="' || v_piece_moves || '"'
                                 || ' attacked_by="' || nvl(v_attacked_by,'') || '"'
+                                || ' is_current_player="' || case when p_player_number = v_current_player then 'Y' else 'N' end || '"'
                                 --|| '" positions2="' || calc_valid_squares(p_game_id, p_piece_id)
                                 || '"/>';  
     end if;
@@ -1118,6 +1139,7 @@ create or replace package body GM_PIECE_LIB as
     v_xpos number;
     v_ypos number;
     v_exists number;
+    v_piece_id number;
   begin
 
     if APEX_COLLECTION.COLLECTION_EXISTS (p_collection_name => 'GAME_STATE') = true then
@@ -1156,8 +1178,7 @@ create or replace package body GM_PIECE_LIB as
       end if; /* if moves is not null */
     end loop;
 
-    -- Kings cannot move into check - non-pawns
-
+    -- Kings cannot move into check - non-pawns attack along their lines of movement.
     for M in (
       select seq_id
       from gm_piece_moves P
@@ -1188,7 +1209,24 @@ create or replace package body GM_PIECE_LIB as
     ) loop
           apex_collection.delete_member(p_collection_name => 'GAME_STATE', p_seq => M.seq_id);
     end loop;
-  
+    
+    -- If the King has no moves then it is CHECK-MATE!
+    select count(*) into v_move from gm_piece_moves where game_id = p_game_id and piece_type_code='KING' and player=1;
+    select xpos, ypos, piece_id into v_xpos, v_ypos, v_piece_id from gm_board_pieces where game_id = p_game_id and piece_type_code='KING' and player=1;
+    if v_move = 0 then
+      apex_collection.add_member(p_collection_name => 'GAME_STATE', 
+                                          p_c001 => p_game_id, 
+                                          p_c002 => 'KING',
+                                          p_c003 => 'checkmate',
+                                          p_c004 => calc_valid_squares(p_game_id, v_piece_id),
+    
+                                          p_n001 => v_piece_id,
+                                          p_n002 => 1,
+                                          p_n003 => p_game_id,
+                                          p_n004 => v_xpos,
+                                          P_n005 => v_ypos
+                                          );
+    end if;
   end generate_piece_moves;
 
 end GM_PIECE_LIB;
@@ -1433,8 +1471,9 @@ begin
   insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '.bad-location',' {background-color: pink; border: 2px solid red;}', 1000);
   insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '.good-location','{background-color: lightgreen; border: 2px solid darkgreen;}',1000);
   insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '.capture-location','{background-color: sandybrown;border: 2px solid saddlebrown;}',1002);
-  insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '[piece-name="king"]:not([attacked_by=""])','{background-color: #B8005C;border: 2px solid #37001C;}',1003);
-  
+  insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '[piece-name="king"][positions="checkmate"]','{background-color: #CC3300;border: 2px solid white;}',1003);
+  insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '[piece-name="king"]:not([attacked_by=""]):not([positions="checkmate"])','{background-color: #B8005C;border: 2px solid white;}',1004);
+
   -- white pieces
   insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '[player="1"][piece-name="pawn"]' ,'{background-image: url("https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg");}',100);
   insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '[player="1"][piece-name="rook"]' ,'{background-image: url("https://upload.wikimedia.org/wikipedia/commons/7/72/Chess_rlt45.svg");}',100);
@@ -2625,19 +2664,23 @@ create or replace package body gm_card_lib as
     insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 6, 1, 'OA2P');
     insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 7, 1, 'NA2P');
     insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 8, 1, 'OA2Q');
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 16, 1, 'OB2N');
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 17, 1, 'RMSQ');
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 18, 1, 'MKSQ');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 9, 1, 'OB2N');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 10, 1, 'RMSQ');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 11, 1, 'MKSQ');
     
     
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 9, 2, 'OA2P');
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 10, 2, 'OA2Q');
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 11, 2, 'OP2Q');
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 12, 2, 'NA2P');
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 13, 2, 'AA2P');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 12, 2, 'OA2P');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 13, 2, 'OA2Q');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 14, 2, 'OP2Q');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 15, 2, 'NA2P');
+    --insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 13, 2, 'AA2P');
     
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 14, 0, 'OP2R');
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 15, 0, 'OP2R');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 16, 0, 'OP2R');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 17, 0, 'OP2R');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 18, 1, 'OA2Q');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 19, 1, 'OB2N');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 20, 1, 'RMSQ');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 21, 1, 'MKSQ');
   end board_init;
 
   procedure process_card(p_game_id number, p_piece_id varchar2, p_xpos number, p_ypos number)
@@ -2755,8 +2798,9 @@ create or replace view gm_board_piece_locs_view as
 /
 create or replace view gm_board_cards_view as
   select C.gamedef_card_code, C.card_id, C.player, C.game_id, CD.used_for_class, CD.used_for_piece_type_code, CD.card_name, CD.card_description,
-          '<div class="card-location" player="' || C.player || '" id="card-loc-' || C.card_id || '">' || 
-          ' <div class="card" type="card" id="card-' || C.card_id || '"'
+          '<div class="card-location" player="' || C.player || '" id="card-loc-' || C.card_id || '"'
+          || ' is_current_player="' || case when G.current_player = C.player then 'Y' else 'N' end || '">'
+          || ' <div class="card" type="card" id="card-' || C.card_id || '"'
           || ' player="' || C.player || '"'
           || ' card-action="' || CD.routine || '"'
           || ' positions="' || L.board_locations || '"'
@@ -2771,7 +2815,8 @@ create or replace view gm_board_cards_view as
             when CD.routine = 'REPLACE' then
               '<table><tr>'
               || '<td><div class="card-piece" player=' || decode(CD.used_for_player, 'OWN', C.player, 'NME', 3-C.player, 'ANY', 0) 
-              || ' piece-name="' || lower(CD.used_for_piece_type_code) ||'" ></div></td>'
+              || ' piece-name="' || lower(CD.used_for_piece_type_code) ||'"' 
+              || '></div></td>'
               || '<td>' || CD.gamedef_card_code || '</td>'
               || case when CD.used_for_player = 'ANY' then
                         '<td><div class="card-piece" player=' || 2 || ' piece-name="'|| lower(CD.parameter1) || '" ></div>'
@@ -2787,6 +2832,7 @@ create or replace view gm_board_cards_view as
           || '</div></div>' value,
           CD.card_name label
 from gm_board_cards C
+left join gm_games G on C.game_id = G.game_id
 left join gm_gamedef_cards CD on C.gamedef_card_code = CD.gamedef_card_code
 left join gm_board_piece_locs_view L on 
             C.game_id = L.game_id

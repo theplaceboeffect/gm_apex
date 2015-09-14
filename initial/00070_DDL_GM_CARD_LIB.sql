@@ -62,19 +62,23 @@ create or replace package body gm_card_lib as
     insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 6, 1, 'OA2P');
     insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 7, 1, 'NA2P');
     insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 8, 1, 'OA2Q');
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 16, 1, 'OB2N');
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 17, 1, 'RMSQ');
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 18, 1, 'MKSQ');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 9, 1, 'OB2N');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 10, 1, 'RMSQ');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 11, 1, 'MKSQ');
     
     
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 9, 2, 'OA2P');
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 10, 2, 'OA2Q');
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 11, 2, 'OP2Q');
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 12, 2, 'NA2P');
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 13, 2, 'AA2P');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 12, 2, 'OA2P');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 13, 2, 'OA2Q');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 14, 2, 'OP2Q');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 15, 2, 'NA2P');
+    --insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 13, 2, 'AA2P');
     
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 14, 0, 'OP2R');
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 15, 0, 'OP2R');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 16, 0, 'OP2R');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 17, 0, 'OP2R');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 18, 1, 'OA2Q');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 19, 1, 'OB2N');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 20, 1, 'RMSQ');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 21, 1, 'MKSQ');
   end board_init;
 
   procedure process_card(p_game_id number, p_piece_id varchar2, p_xpos number, p_ypos number)

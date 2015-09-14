@@ -95,8 +95,9 @@ begin
   insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '.bad-location',' {background-color: pink; border: 2px solid red;}', 1000);
   insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '.good-location','{background-color: lightgreen; border: 2px solid darkgreen;}',1000);
   insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '.capture-location','{background-color: sandybrown;border: 2px solid saddlebrown;}',1002);
-  insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '[piece-name="king"]:not([attacked_by=""])','{background-color: #B8005C;border: 2px solid #37001C;}',1003);
-  
+  insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '[piece-name="king"][positions="checkmate"]','{background-color: #CC3300;border: 2px solid white;}',1003);
+  insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '[piece-name="king"]:not([attacked_by=""]):not([positions="checkmate"])','{background-color: #B8005C;border: 2px solid white;}',1004);
+
   -- white pieces
   insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '[player="1"][piece-name="pawn"]' ,'{background-image: url("https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg");}',100);
   insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '[player="1"][piece-name="rook"]' ,'{background-image: url("https://upload.wikimedia.org/wikipedia/commons/7/72/Chess_rlt45.svg");}',100);

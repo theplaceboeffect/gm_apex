@@ -50,8 +50,9 @@ create or replace view gm_board_piece_locs_view as
 /
 create or replace view gm_board_cards_view as
   select C.gamedef_card_code, C.card_id, C.player, C.game_id, CD.used_for_class, CD.used_for_piece_type_code, CD.card_name, CD.card_description,
-          '<div class="card-location" player="' || C.player || '" id="card-loc-' || C.card_id || '">' || 
-          ' <div class="card" type="card" id="card-' || C.card_id || '"'
+          '<div class="card-location" player="' || C.player || '" id="card-loc-' || C.card_id || '"'
+          || ' is_current_player="' || case when G.current_player = C.player then 'Y' else 'N' end || '">'
+          || ' <div class="card" type="card" id="card-' || C.card_id || '"'
           || ' player="' || C.player || '"'
           || ' card-action="' || CD.routine || '"'
           || ' positions="' || L.board_locations || '"'
@@ -66,7 +67,8 @@ create or replace view gm_board_cards_view as
             when CD.routine = 'REPLACE' then
               '<table><tr>'
               || '<td><div class="card-piece" player=' || decode(CD.used_for_player, 'OWN', C.player, 'NME', 3-C.player, 'ANY', 0) 
-              || ' piece-name="' || lower(CD.used_for_piece_type_code) ||'" ></div></td>'
+              || ' piece-name="' || lower(CD.used_for_piece_type_code) ||'"' 
+              || '></div></td>'
               || '<td>' || CD.gamedef_card_code || '</td>'
               || case when CD.used_for_player = 'ANY' then
                         '<td><div class="card-piece" player=' || 2 || ' piece-name="'|| lower(CD.parameter1) || '" ></div>'
@@ -82,6 +84,7 @@ create or replace view gm_board_cards_view as
           || '</div></div>' value,
           CD.card_name label
 from gm_board_cards C
+left join gm_games G on C.game_id = G.game_id
 left join gm_gamedef_cards CD on C.gamedef_card_code = CD.gamedef_card_code
 left join gm_board_piece_locs_view L on 
             C.game_id = L.game_id

@@ -12,9 +12,8 @@ insert into gm_css(css_id, css_selector, css_declaration_block) values (122, '.c
 insert into gm_css(css_id, css_selector, css_declaration_block) values (129, '.card-location', '{ background-color:white; height:45px; width:130px; border: 0px }'); 
 insert into gm_css(css_id, css_selector, css_declaration_block) values (130, '.history-piece','{height:25px; width:25px; background-size:25px 25px;}');
 insert into gm_css(css_id, css_selector, css_declaration_block) values (131, '.card-piece','{height:35px; width:35px; background-size:35px 35px;}');
-insert into gm_css(css_id, css_selector, css_declaration_block) values (132,'#player_icon_1','{width:50px;height:50px;}');
-insert into gm_css(css_id, css_selector, css_declaration_block) values (133,'#player_icon_2','{width:50px;height:50px;}');
-
+insert into gm_css(css_id, css_selector, css_declaration_block) values (132,'#player_icon_1','{width:50px;height:54px;}');
+insert into gm_css(css_id, css_selector, css_declaration_block) values (133,'#player_icon_2','{width:50px;height:54px;}');
 insert into gm_css(css_id, css_selector, css_declaration_block) values (140, '.card-piece[player="1"][piece-name="any"]', '{background-image: url("https://upload.wikimedia.org/wikipedia/commons/6/65/White_Stars_1.svg");}');
 insert into gm_css(css_id, css_selector, css_declaration_block) values (141, '.card-piece[player="2"][piece-name="any"]', '{background-image: url("https://upload.wikimedia.org/wikipedia/commons/c/c8/Black_Star.svg");}');
 insert into gm_css(css_id, css_selector, css_declaration_block) values (142, '.card-piece[player="0"][piece-name="any"]', '{background-image: url("https://upload.wikimedia.org/wikipedia/commons/1/17/Yin_yang.svg");}');
@@ -141,12 +140,42 @@ create or replace view gm_board_history_view as
   select game_id, history_id, history_item
   from history;
 /
+create or replace view gm_board_history_list as
+  with white_moves as (
+    select rownum r, game_id, history_id, history_item 
+    from (
+      select game_id, history_id, history_item
+      from gm_board_history_view
+      where game_id=v('P1_GAME_ID') and mod(history_id,2) = 1
+      order by history_id
+    )
+  ),
+  black_moves as (
+    select rownum r, game_id, history_id, history_item 
+    from (
+      select game_id, history_id, history_item
+      from gm_board_history_view
+      where game_id=v('P1_GAME_ID') and mod(history_id,2) = 0
+      order by history_id
+    )
+  )
+  select W.r,  W.history_item white_move,  B.history_item black_move
+  from white_moves W
+  left join black_moves B on W.r = B.r
+  order by W.r;
+/
 
 create or replace view gm_piece_moves as
-    select collection_name, seq_id, c001 piece_type_code, 
-            n001 game_id, n002 piece_id, n003 player, 
-            n004 xpos, n005 ypos,
-            c002 piece_move,
+    select collection_name, seq_id, 
+            n003 game_id, 
+            c002 piece_type_code,
+            c003 piece_move,
+            c004 piece_all_moves,
+            
+            n001 piece_id,
+            n002 player,
+            n004 xpos,
+            n005 ypos
     from apex_collections 
     where collection_name='GAME_STATE';
 /
