@@ -2,12 +2,19 @@
 
 delete from gm_css;
 /
+
+
 insert into gm_css(css_id, css_selector, css_declaration_block) values (110, '[type="card"]','{ background-color:yellow; height:45px; width:130px; }');
 insert into gm_css(css_id, css_selector, css_declaration_block) values (120, '.card[card-action="REPLACE"]', '{align: center; background-color: #E7D0DB;color: #85144b;font-weight: bold;border-radius: 10px;border: solid 2px;border-color: #85144b; height:45px; width:130px; text-align: center; }');
 insert into gm_css(css_id, css_selector, css_declaration_block) values (121, '.card[card-action="BOARD_CHANGE"]', '{background-color: #808F9F; color:#001f3f ;font-weight: bold;border-radius: 10px;border: solid 2px;border-color: #001f3f; height:45px; width:130px; text-align: center; }');
+insert into gm_css(css_id, css_selector, css_declaration_block) values (122, '.card-location[is_current_player="N"]','{  -webkit-filter: blur(1px);  -moz-filter: blur(1px);  -o-filter: blur(1px);  -ms-filter: blur(1px);  filter: blur(1px);}');
+
 insert into gm_css(css_id, css_selector, css_declaration_block) values (129, '.card-location', '{ background-color:white; height:45px; width:130px; border: 0px }'); 
 insert into gm_css(css_id, css_selector, css_declaration_block) values (130, '.history-piece','{height:25px; width:25px; background-size:25px 25px;}');
 insert into gm_css(css_id, css_selector, css_declaration_block) values (131, '.card-piece','{height:35px; width:35px; background-size:35px 35px;}');
+insert into gm_css(css_id, css_selector, css_declaration_block) values (132,'#player_icon_1','{width:50px;height:50px;}');
+insert into gm_css(css_id, css_selector, css_declaration_block) values (133,'#player_icon_2','{width:50px;height:50px;}');
+
 insert into gm_css(css_id, css_selector, css_declaration_block) values (140, '.card-piece[player="1"][piece-name="any"]', '{background-image: url("https://upload.wikimedia.org/wikipedia/commons/6/65/White_Stars_1.svg");}');
 insert into gm_css(css_id, css_selector, css_declaration_block) values (141, '.card-piece[player="2"][piece-name="any"]', '{background-image: url("https://upload.wikimedia.org/wikipedia/commons/c/c8/Black_Star.svg");}');
 insert into gm_css(css_id, css_selector, css_declaration_block) values (142, '.card-piece[player="0"][piece-name="any"]', '{background-image: url("https://upload.wikimedia.org/wikipedia/commons/1/17/Yin_yang.svg");}');
@@ -133,6 +140,13 @@ create or replace view gm_board_history_view as
   )
   select game_id, history_id, history_item
   from history;
-  /
+/
 
-
+create or replace view gm_piece_moves as
+    select collection_name, seq_id, c001 piece_type_code, 
+            n001 game_id, n002 piece_id, n003 player, 
+            n004 xpos, n005 ypos,
+            c002 piece_move,
+    from apex_collections 
+    where collection_name='GAME_STATE';
+/

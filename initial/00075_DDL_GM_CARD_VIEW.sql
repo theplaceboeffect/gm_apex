@@ -50,7 +50,7 @@ create or replace view gm_board_piece_locs_view as
 /
 create or replace view gm_board_cards_view as
   select C.gamedef_card_code, C.card_id, C.player, C.game_id, CD.used_for_class, CD.used_for_piece_type_code, CD.card_name, CD.card_description,
-          '<div class="card-location" id="card-loc-' || C.card_id || '">' || 
+          '<div class="card-location" player="' || C.player || '" id="card-loc-' || C.card_id || '">' || 
           ' <div class="card" type="card" id="card-' || C.card_id || '"'
           || ' player="' || C.player || '"'
           || ' card-action="' || CD.routine || '"'

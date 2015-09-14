@@ -1,4 +1,3 @@
-alter session set current_schema=apex_gm;
 
 create or replace package GM_LOGIN_LIB as
 

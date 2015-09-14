@@ -67,10 +67,14 @@ function gm_board()
     }
 
     this.show_valid_moves_for=function show_valid_moves_for(piece) {
-        $("#"+piece.getAttribute('id')).attr('positions').split(':').forEach(function(item) { if (item != '') { $("#" + item).addClass('good-location') }});
+        $("#"+piece.getAttribute('id')).attr('positions').split(':').forEach(function(item) { 
+                                                        if (item != '') { $("#" + item).addClass('good-location') }
+                                                        });
+        $("#" + $("#"+piece.getAttribute('id')).attr('location')).addClass('good-location');
     }
     this.reset_board_location_highlights=function reset_board_location_highlights() {
         //$('.board-location').css('border','0px');
+        $('.card-location').removeClass('bad-location');
         $('.board-location').removeClass('bad-location');
         $('.board-location').removeClass('good-location');
         $('.board-location').removeClass('capture-location');
@@ -97,29 +101,23 @@ function InitializeBoardDragAndDrop()
         d.destroy();
     }
     
-    $('[type="card"]').css({'background-color':'yellow','height':'30px','width':'60px'});
-    $('.card-location').css({'background-color':'red','height':'40px','width':'100px'});
     board_locations=Array.prototype.slice.call(document.querySelectorAll( '.board-location'));
-    card_locations=Array.prototype.slice.call(document.querySelectorAll( '.card-location'));
-
+    //card_locations=Array.prototype.slice.call(document.querySelectorAll( '.card-location'));
+    
     d = dragula(Array.prototype.slice.call(board_locations)
                 , {/* dragula options */
                     revertOnSpill:true,
                     accepts: function (piece, target, source, sibling) {
                         var current_location = target.getAttribute('id');
-                        /*if (last_accept_location == current_location ) {
-                            return true;
-                        } else {
-                            last_accept_location = current_location;                        
-                        }*/
 
-/*                        var piece_type = piece.getAttribute('type');
-                        if (piece_type === 'card')
+                        console.log("piece.getAttribute('player') =" + piece.getAttribute('player')  + '||$v("P1_CURRENT_PLAYER")=' + $v("P1_CURRENT_PLAYER"));
+                        // Only let the current player move.
+                        if ( piece.getAttribute('player') !== $v("P1_CURRENT_PLAYER"))
                         {
-                            console.log('Moving card ');
-                            return true;
+                            d.cancel();
+                            return false;
                         }
-*/
+                        
                         console.log('Moving ' + piece.getAttribute('class'));                       
                         board.show_valid_moves_for(piece);
                         $('.board-location').removeClass('bad-location');
@@ -138,21 +136,20 @@ function InitializeBoardDragAndDrop()
 
     /* Define events */
     d.on('drop', function(piece,target,source) {
-            console.log("ON DROP:(" + board.xpos(piece) + "," + board.ypos(piece) + ") -> (" + board.xpos(target) + "," + board.ypos(target) + ")" );
             var piece_type = piece.getAttribute('type');
-            if (piece_type === 'card')
-            {
-                console.log('Dropping card ');
-                return true;
-            }
+            console.log("ON DROP:" + piece_type + " (" + board.xpos(piece) + "," + board.ypos(piece) + ") -> (" + board.xpos(target) + "," + board.ypos(target) + ")" );
             board.reset_board_location_highlights(); // reset borders 
+
             OnMovePiece(piece);
+            return true;
     });
     d.on('over', function(piece,container,source) {
-            console.log("ON OVER:(" + board.xpos(piece) + "," + board.ypos(piece) + ") container (" + board.xpos(container) + "," + board.ypos(container) + ")" );
+            var piece_type = piece.getAttribute('type');
+            console.log("ON OVER:" + piece_type + " (" + board.xpos(piece) + "," + board.ypos(piece) + ") container (" + board.xpos(container) + "," + board.ypos(container) + ")" );
             var piece_type = piece.getAttribute('type');
             if (piece_type === 'card')
             {
+                board.show_valid_moves_for(piece);
                 console.log('Card over');
                 return true;
             }
@@ -173,29 +170,20 @@ function InitializeBoardDragAndDrop()
     });
         ;
     d.on('cancel', function(piece,container) {
-        console.log("ON CANCEL:(" + board.xpos(piece) + "," + board.ypos(piece) + ") container (" + board.xpos(container) + "," + board.ypos(container) + ")" );
         var piece_type = piece.getAttribute('type');
-        if (piece_type === 'card')
-        {
-            console.log('Cancel card  move');
-            return true;
-        }
+        console.log("ON CANCEL:" + piece_type + " (" + board.xpos(piece) + "," + board.ypos(piece) + ") container (" + board.xpos(container) + "," + board.ypos(container) + ")" );
         board.reset_board_location_highlights(); // reset borders 
 
     });
     
     d.on('drag', function(piece,container) {
-        console.log("ON DRAG:(" + board.xpos(piece) + "," + board.ypos(piece) + ") container (" + board.xpos(container) + "," + board.ypos(container) + ")" );
         var piece_type = piece.getAttribute('type');
-        if (piece_type === 'card')
-        {
-            console.log('Dragging card ');
-            return true;
-        }
-       last_accept_location = '';
+        console.log("ON DRAG:(" + piece_type + " (" + board.xpos(piece) + "," + board.ypos(piece) + ") container (" + board.xpos(container) + "," + board.ypos(container) + ")" );
+        last_accept_location = '';
     });
          
-    for (i in document.querySelectorAll( '.card-location')) { 
+    card_locations=Array.prototype.slice.call(document.querySelectorAll( '.card-location[player="'+ $v("P1_CURRENT_PLAYER") +'"]'));
+    for (i in card_locations) { 
         d.containers.push(card_locations[i]); 
     }
     
@@ -204,6 +192,7 @@ function InitializeBoardDragAndDrop()
             , 'id:' + o.getAttribute('id')
                     + '<br/>@' + o.getAttribute('xpos') + ',' + o.getAttribute('ypos')
                     + '<br/>Positions:' + o.getAttribute('positions')
+                    + '<br/>Positions2:' + o.getAttribute('positions2')
                 , o.getAttribute('piece-name') 
             );
     });
@@ -226,18 +215,22 @@ function InitializeBoardDragAndDrop()
 function OnMovePiece(e1)
 {
     var piece_moved = $(e1).attr("id").replace('piece-','');
+    var piece_type = $(e1).attr('type');
     var new_x = $(e1).parent().attr("id").split("-")[1];
     var new_y = $(e1).parent().attr("id").split("-")[2];
  
     
     console.log('piece_moved:' + piece_moved + " to " + new_x + "," + new_y);
     
+    $s("P1_PIECE_TYPE", piece_type)
     $s("P1_PIECE_MOVED", piece_moved);
     $s("P1_NEW_X", new_x);
     $s("P1_NEW_Y", new_y);
     
-    $s("P1_TRIGGER_MOVE", $v("P1_TRIGGER_MOVE")+1);
+    $s("P1_TRIGGER_MOVE", parseInt($v("P1_TRIGGER_MOVE"))+1);
     $("#GAME_BOARD").trigger('apexrefresh');
+    $("#P1_CARDS").trigger('apexrefresh');
+    $("#P2_CARDS").trigger('apexrefresh');     
     $("#GAME_HISTORY").trigger('apexrefresh');
 }
 /***************************************************************/
@@ -255,9 +248,9 @@ function RefreshEverything()
         if ($v("P1_LAST_MOVE_ID") > last_move_id ) {
             //console.log('Refreshing game board');
             $("#GAME_BOARD").trigger('apexrefresh');
-            $("#GM_STATE").trigger('apexrefresh');       
-            $("P1_CARDS").trigger('apexrefresh');
-            $("P2_CARDS").trigger('apexrefresh');        
+            $("#GM_STATE").trigger('apexrefresh');
+            $("#P1_CARDS").trigger('apexrefresh');
+            $("#P2_CARDS").trigger('apexrefresh');        
         } /*
         else {
             console.log('Skipping refresh of game board.');

@@ -17,6 +17,7 @@ create or replace package body GM_GAME_LIB as
   as
   begin
     gm_card_lib.process_card(p_game_id, p_piece_id, p_xpos, p_ypos);
+    gm_piece_lib.generate_piece_moves(p_game_id);
     update gm_games set current_player = 3 - current_player where game_id = p_game_id;
   end move_card;
 
@@ -24,6 +25,7 @@ create or replace package body GM_GAME_LIB as
   as
   begin
     gm_piece_lib.move_piece(p_game_id, p_piece_id, p_xpos, p_ypos);
+    gm_piece_lib.generate_piece_moves(p_game_id);
     update gm_games set current_player = 3 - current_player where game_id = p_game_id;
   end move_piece;
 
