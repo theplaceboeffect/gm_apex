@@ -2,8 +2,12 @@
 delete from gm_gamedef_piece_types where piece_type_code='LOCK';
 insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, piece_notation, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions  ) 
                                     values('CHESS', 'LOCK', 'lock', 'X', 0, 0, null, null, null, 0);
+-- Board icon for lock
 delete from gm_gamedef_css where css_selector='[player="3"][piece-name="lock"]:before';
+insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '[player="3"][piece-name="lock"]:before' ,'{ font-family: FontAwesome; content: "\f023"; color: #F17171; font-size: 50px; position: absolute; top: 19px; left: 8px; }',100);
 
+-- History icon for lock
+delete from gm_gamedef_css where css_selector='[player="3"][piece-name="Hlock"]:before';
 insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '[player="3"][piece-name="lock"]:before' ,'{ font-family: FontAwesome; content: "\f023"; color: #F17171; font-size: 50px; position: absolute; top: 19px; left: 8px; }',100);
 commit;
 /
@@ -75,10 +79,10 @@ create or replace package body gm_card_lib as
     
     insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 16, 0, 'OP2R');
     insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 17, 0, 'OP2R');
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 18, 1, 'OA2Q');
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 19, 1, 'OB2N');
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 20, 1, 'RMSQ');
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 21, 1, 'MKSQ');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 18, 2, 'OA2Q');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 19, 2, 'OB2N');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 20, 2, 'RMSQ');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 21, 2, 'MKSQ');
   end board_init;
 
   procedure process_card(p_game_id number, p_piece_id varchar2, p_xpos number, p_ypos number)
@@ -87,6 +91,7 @@ create or replace package body gm_card_lib as
     v_piece_id number;
     v_player number;
     v_old_piece_type_code varchar(10);
+    v_move_number number;
     card_def gm_gamedef_cards%rowtype;
     piece gm_board_pieces%rowtype;
   begin 
@@ -138,8 +143,9 @@ create or replace package body gm_card_lib as
     where C.game_id = p_game_id and C.card_id = v_card_id;
  */
     -- Record card use.
-    insert into gm_game_history(game_id,  piece_id, card_id, player, old_xpos, old_ypos, new_xpos, new_ypos, action, action_piece, action_parameter)
-                           values(p_game_id, v_piece_id, v_card_id, v_player , p_xpos, p_ypos, 0, 0, 'CARD', v_card_id, v_old_piece_type_code);
+    select current_move into v_move_number from gm_games where game_id = p_game_id;
+    insert into gm_game_history(game_id,  piece_id, card_id, player, old_xpos, old_ypos, new_xpos, new_ypos, action, action_piece, action_parameter, move_number)
+                           values(p_game_id, v_piece_id, v_card_id, v_player , p_xpos, p_ypos, 0, 0, 'CARD', v_card_id, v_old_piece_type_code, v_move_number);
   
   end;
 end gm_card_lib;

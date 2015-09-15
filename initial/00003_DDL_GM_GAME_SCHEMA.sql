@@ -19,6 +19,7 @@ create table  gm_games
   player1 nvarchar2(50),
   player2 nvarchar2(50),
   current_player number,
+  current_move number,
   gamestart_timestamp date,
 --  lastmove_timestamp date,
 --  lastmove_count number,
@@ -104,6 +105,8 @@ create table gm_game_history
 (
   history_id number,
   game_id number,
+  move_number number,
+  
   piece_id number,
   card_id number,
   player number,
@@ -111,9 +114,13 @@ create table gm_game_history
   old_ypos number,
   new_xpos number,
   new_ypos number,
+
   action varchar2(20),
   action_piece number,
   action_parameter varchar2(50),
+  p1_in_check number,
+  p2_in_check number,
+
   move_time date default sysdate,
   
   constraint game_history_pk primary key (history_id),

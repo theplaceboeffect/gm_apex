@@ -10,23 +10,26 @@ end GM_GAME_LIB;
 /
 create or replace package body GM_GAME_LIB as
 
- 
-
   /*********************************************************************************************************************/
+  procedure move_done(p_game_id number)
+  as
+  begin
+    gm_piece_lib.generate_piece_moves(p_game_id);
+    update gm_games set current_player = 3 - current_player, current_move = current_move + 1 where game_id = p_game_id;
+  end move_done;
+
   procedure move_card(p_game_id number, p_piece_id varchar2, p_xpos number, p_ypos number)
   as
   begin
     gm_card_lib.process_card(p_game_id, p_piece_id, p_xpos, p_ypos);
-    gm_piece_lib.generate_piece_moves(p_game_id);
-    update gm_games set current_player = 3 - current_player where game_id = p_game_id;
+    move_done(p_game_id);
   end move_card;
-
+  
   procedure move_piece(p_game_id number, p_piece_id number, p_xpos number, p_ypos number)
   as
   begin
     gm_piece_lib.move_piece(p_game_id, p_piece_id, p_xpos, p_ypos);
-    gm_piece_lib.generate_piece_moves(p_game_id);
-    update gm_games set current_player = 3 - current_player where game_id = p_game_id;
+    move_done(p_game_id);
   end move_piece;
 
 /*******************************************************************************************/
@@ -35,8 +38,9 @@ create or replace package body GM_GAME_LIB as
     v_game_id number;
   begin
     select gm_games_seq.nextval into v_game_id from sys.dual;  
-    insert into gm_games(game_id,   player1,  player2, current_player) 
-                  values(v_game_id, p_player1, p_player2, 1);
+    
+    insert into gm_games(game_id,   player1,  player2, current_player, current_move) 
+                  values(v_game_id, p_player1, p_player2, 1, 1);
     
     if p_game_type = 'FISHER' then 
       gm_gamedef_lib.create_board(v_game_id, p_fisher_game);

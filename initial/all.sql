@@ -76,6 +76,7 @@ create table  gm_games
   player1 nvarchar2(50),
   player2 nvarchar2(50),
   current_player number,
+  current_move number,
   gamestart_timestamp date,
 --  lastmove_timestamp date,
 --  lastmove_count number,
@@ -161,6 +162,8 @@ create table gm_game_history
 (
   history_id number,
   game_id number,
+  move_number number,
+  
   piece_id number,
   card_id number,
   player number,
@@ -168,9 +171,13 @@ create table gm_game_history
   old_ypos number,
   new_xpos number,
   new_ypos number,
+
   action varchar2(20),
   action_piece number,
   action_parameter varchar2(50),
+  p1_in_check number,
+  p2_in_check number,
+
   move_time date default sysdate,
   
   constraint game_history_pk primary key (history_id),
@@ -541,23 +548,26 @@ end GM_GAME_LIB;
 /
 create or replace package body GM_GAME_LIB as
 
- 
-
   /*********************************************************************************************************************/
+  procedure move_done(p_game_id number)
+  as
+  begin
+    gm_piece_lib.generate_piece_moves(p_game_id);
+    update gm_games set current_player = 3 - current_player, current_move = current_move + 1 where game_id = p_game_id;
+  end move_done;
+
   procedure move_card(p_game_id number, p_piece_id varchar2, p_xpos number, p_ypos number)
   as
   begin
     gm_card_lib.process_card(p_game_id, p_piece_id, p_xpos, p_ypos);
-    gm_piece_lib.generate_piece_moves(p_game_id);
-    update gm_games set current_player = 3 - current_player where game_id = p_game_id;
+    move_done(p_game_id);
   end move_card;
-
+  
   procedure move_piece(p_game_id number, p_piece_id number, p_xpos number, p_ypos number)
   as
   begin
     gm_piece_lib.move_piece(p_game_id, p_piece_id, p_xpos, p_ypos);
-    gm_piece_lib.generate_piece_moves(p_game_id);
-    update gm_games set current_player = 3 - current_player where game_id = p_game_id;
+    move_done(p_game_id);
   end move_piece;
 
 /*******************************************************************************************/
@@ -566,8 +576,9 @@ create or replace package body GM_GAME_LIB as
     v_game_id number;
   begin
     select gm_games_seq.nextval into v_game_id from sys.dual;  
-    insert into gm_games(game_id,   player1,  player2, current_player) 
-                  values(v_game_id, p_player1, p_player2, 1);
+    
+    insert into gm_games(game_id,   player1,  player2, current_player, current_move) 
+                  values(v_game_id, p_player1, p_player2, 1, 1);
     
     if p_game_type = 'FISHER' then 
       gm_gamedef_lib.create_board(v_game_id, p_fisher_game);
@@ -776,27 +787,40 @@ create or replace view gm_board_history_view as
 /
 create or replace view gm_board_history_list as
   with white_moves as (
-    select game_id, rownum r, history_item
-    from gm_board_history_view
-    where game_id=v('P1_GAME_ID') and mod(history_id,2) = 0
-    order by history_id
+    select rownum r, game_id, history_id, history_item 
+    from (
+      select game_id, history_id, history_item
+      from gm_board_history_view
+      where game_id=v('P1_GAME_ID') and mod(history_id,2) = 1
+      order by history_id
+    )
   ),
   black_moves as (
-    select rownum r, history_item
-    from gm_board_history_view
-    where game_id=v('P1_GAME_ID') and mod(history_id,2) = 1
-    order by history_id
+    select rownum r, game_id, history_id, history_item 
+    from (
+      select game_id, history_id, history_item
+      from gm_board_history_view
+      where game_id=v('P1_GAME_ID') and mod(history_id,2) = 0
+      order by history_id
+    )
   )
-  select W.r, W.history_item white_move, B.history_item black_move
+  select W.r,  W.history_item white_move,  B.history_item black_move
   from white_moves W
-  left join black_moves B on W.r = B.r;
-
+  left join black_moves B on W.r = B.r
+  order by W.r;
 /
+
 create or replace view gm_piece_moves as
-    select collection_name, seq_id, c001 piece_type_code, 
-            n001 game_id, n002 piece_id, n003 player, 
-            n004 xpos, n005 ypos,
-            c002 piece_move
+    select collection_name, seq_id, 
+            n003 game_id, 
+            c002 piece_type_code,
+            c003 piece_move,
+            c004 piece_all_moves,
+            
+            n001 piece_id,
+            n002 player,
+            n004 xpos,
+            n005 ypos
     from apex_collections 
     where collection_name='GAME_STATE';
 /
@@ -808,6 +832,9 @@ create or replace package GM_PIECE_LIB as
   function format_piece(p_game_id number, p_piece_id number, p_player_number number, p_piece_name nvarchar2, p_xpos number, p_ypos number) return nvarchar2;
   function calc_valid_squares(p_game_id number, p_piece_id number) return varchar2;
   procedure generate_piece_moves(p_game_id number);
+  
+    function is_king_in_check(p_game_id number, p_player number) return number;
+
 
 end GM_PIECE_LIB;
 
@@ -815,6 +842,20 @@ end GM_PIECE_LIB;
 
 create or replace package body GM_PIECE_LIB as
 
+  function is_king_in_check(p_game_id number, p_player number) return number
+  as
+    in_check number;
+  begin
+      select count(*) into in_check 
+      from dual where exists (  select K.piece_type_code, K.player
+                                  from gm_piece_moves K
+                                  join gm_piece_moves ATK on K.game_id=ATK.game_id and K.player != ATK.player and 'loc-' || K.xpos || '-' || K.ypos = ATK.piece_move 
+                                  where K.game_id=p_game_id and K.piece_type_code='KING' and K.player = 1
+                                  group by K.piece_type_code, K.player
+                                );
+      return in_check;
+  end is_king_in_check;
+  
   /*********************************************************************************************************************/
   procedure move_piece(p_game_id number, p_piece_id number, p_xpos number, p_ypos number)
   as
@@ -826,6 +867,9 @@ create or replace package body GM_PIECE_LIB as
     v_taken_piece gm_board_pieces%rowtype;
     v_piece gm_board_pieces%rowtype;
     v_piece_type gm_piece_types%rowtype;
+    v_move_number number;
+    v_p1_in_check number;
+    v_p2_in_check number;
   begin
     --log_message('move_piece: [p_game_id:' || p_game_id || '][p_piece_id:' || p_piece_id || '][x: ' || p_xpos || '][y: ' || p_ypos || ']');
 
@@ -874,9 +918,17 @@ create or replace package body GM_PIECE_LIB as
       and piece_id = p_piece_id
       and not exists (select * from gm_board_pieces where game_id = p_game_id and xpos=p_xpos and ypos=p_ypos);
 
+    -- generate next set of moves
+    generate_piece_moves(p_game_id);
+    
+    -- check
     -- update history table.
-    insert into gm_game_history(game_id,piece_id,player, old_xpos, old_ypos, new_xpos, new_ypos, action, action_piece)
-                    values(p_game_id, p_piece_id, v_player, v_piece.xpos, v_piece.ypos, p_xpos, p_ypos, v_action, v_taken_piece.piece_id);
+    select current_move into v_move_number from gm_games where game_id = p_game_id;
+    v_p1_in_check := is_king_in_check(p_game_id,1);
+    v_p2_in_check := is_king_in_check(p_game_id,2);
+    
+    insert into gm_game_history(game_id,piece_id,player, old_xpos, old_ypos, new_xpos, new_ypos, action, action_piece, move_number, p1_in_check, p2_in_check)
+                    values(p_game_id, p_piece_id, v_player, v_piece.xpos, v_piece.ypos, p_xpos, p_ypos, v_action, v_taken_piece.piece_id, v_move_number, v_p1_in_check, v_p2_in_check);
   end move_piece;
 
  /*********************************************************************************************************************/
@@ -1072,7 +1124,6 @@ create or replace package body GM_PIECE_LIB as
   end calc_valid_squares;
   
   /*********************************************************************************************************************/
-  /*********************************************************************************************************************/
   function format_piece(p_game_id number, p_piece_id number, p_player_number number, p_piece_name nvarchar2, p_xpos number, p_ypos number) return nvarchar2 as
     v_piece_moves nvarchar2(1000);
     v_attacked_by nvarchar2(100);
@@ -1209,24 +1260,7 @@ create or replace package body GM_PIECE_LIB as
     ) loop
           apex_collection.delete_member(p_collection_name => 'GAME_STATE', p_seq => M.seq_id);
     end loop;
-    
-    -- If the King has no moves then it is CHECK-MATE!
-    select count(*) into v_move from gm_piece_moves where game_id = p_game_id and piece_type_code='KING' and player=1;
-    select xpos, ypos, piece_id into v_xpos, v_ypos, v_piece_id from gm_board_pieces where game_id = p_game_id and piece_type_code='KING' and player=1;
-    if v_move = 0 then
-      apex_collection.add_member(p_collection_name => 'GAME_STATE', 
-                                          p_c001 => p_game_id, 
-                                          p_c002 => 'KING',
-                                          p_c003 => 'checkmate',
-                                          p_c004 => calc_valid_squares(p_game_id, v_piece_id),
-    
-                                          p_n001 => v_piece_id,
-                                          p_n002 => 1,
-                                          p_n003 => p_game_id,
-                                          p_n004 => v_xpos,
-                                          P_n005 => v_ypos
-                                          );
-    end if;
+
   end generate_piece_moves;
 
 end GM_PIECE_LIB;
@@ -2677,10 +2711,10 @@ create or replace package body gm_card_lib as
     
     insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 16, 0, 'OP2R');
     insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 17, 0, 'OP2R');
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 18, 1, 'OA2Q');
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 19, 1, 'OB2N');
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 20, 1, 'RMSQ');
-    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 21, 1, 'MKSQ');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 18, 2, 'OA2Q');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 19, 2, 'OB2N');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 20, 2, 'RMSQ');
+    insert into gm_board_cards(game_id, card_id, player, gamedef_card_code) values(p_game_id, 21, 2, 'MKSQ');
   end board_init;
 
   procedure process_card(p_game_id number, p_piece_id varchar2, p_xpos number, p_ypos number)
@@ -2689,6 +2723,7 @@ create or replace package body gm_card_lib as
     v_piece_id number;
     v_player number;
     v_old_piece_type_code varchar(10);
+    v_move_number number;
     card_def gm_gamedef_cards%rowtype;
     piece gm_board_pieces%rowtype;
   begin 
@@ -2740,8 +2775,9 @@ create or replace package body gm_card_lib as
     where C.game_id = p_game_id and C.card_id = v_card_id;
  */
     -- Record card use.
-    insert into gm_game_history(game_id,  piece_id, card_id, player, old_xpos, old_ypos, new_xpos, new_ypos, action, action_piece, action_parameter)
-                           values(p_game_id, v_piece_id, v_card_id, v_player , p_xpos, p_ypos, 0, 0, 'CARD', v_card_id, v_old_piece_type_code);
+    select current_move into v_move_number from gm_games where game_id = p_game_id;
+    insert into gm_game_history(game_id,  piece_id, card_id, player, old_xpos, old_ypos, new_xpos, new_ypos, action, action_piece, action_parameter, move_number)
+                           values(p_game_id, v_piece_id, v_card_id, v_player , p_xpos, p_ypos, 0, 0, 'CARD', v_card_id, v_old_piece_type_code, v_move_number);
   
   end;
 end gm_card_lib;

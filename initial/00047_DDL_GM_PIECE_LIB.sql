@@ -6,6 +6,9 @@ create or replace package GM_PIECE_LIB as
   function format_piece(p_game_id number, p_piece_id number, p_player_number number, p_piece_name nvarchar2, p_xpos number, p_ypos number) return nvarchar2;
   function calc_valid_squares(p_game_id number, p_piece_id number) return varchar2;
   procedure generate_piece_moves(p_game_id number);
+  
+    function is_king_in_check(p_game_id number, p_player number) return number;
+  procedure remove_king_moves(p_game_id number);
 
 end GM_PIECE_LIB;
 
@@ -13,6 +16,20 @@ end GM_PIECE_LIB;
 
 create or replace package body GM_PIECE_LIB as
 
+  function is_king_in_check(p_game_id number, p_player number) return number
+  as
+    in_check number;
+  begin
+      select count(*) into in_check 
+      from dual where exists (  select K.piece_type_code, K.player, ATK.piece_type_code, ATK.player
+                                  from gm_piece_moves K
+                                  join gm_piece_moves ATK on K.game_id=ATK.game_id and K.player != ATK.player and 'loc-' || K.xpos || '-' || K.ypos = ATK.piece_move 
+                                  where K.game_id=p_game_id and K.piece_type_code='KING' and K.player = p_player and K.piece_move='loc-' || K.xpos || '-' || K.ypos
+
+                                );
+      return in_check;
+  end is_king_in_check;
+  
   /*********************************************************************************************************************/
   procedure move_piece(p_game_id number, p_piece_id number, p_xpos number, p_ypos number)
   as
@@ -24,6 +41,9 @@ create or replace package body GM_PIECE_LIB as
     v_taken_piece gm_board_pieces%rowtype;
     v_piece gm_board_pieces%rowtype;
     v_piece_type gm_piece_types%rowtype;
+    v_move_number number;
+    v_p1_in_check number;
+    v_p2_in_check number;
   begin
     --log_message('move_piece: [p_game_id:' || p_game_id || '][p_piece_id:' || p_piece_id || '][x: ' || p_xpos || '][y: ' || p_ypos || ']');
 
@@ -72,9 +92,18 @@ create or replace package body GM_PIECE_LIB as
       and piece_id = p_piece_id
       and not exists (select * from gm_board_pieces where game_id = p_game_id and xpos=p_xpos and ypos=p_ypos);
 
+    -- generate next set of moves
+    generate_piece_moves(p_game_id);
+    
+    -- check
     -- update history table.
-    insert into gm_game_history(game_id,piece_id,player, old_xpos, old_ypos, new_xpos, new_ypos, action, action_piece)
-                    values(p_game_id, p_piece_id, v_player, v_piece.xpos, v_piece.ypos, p_xpos, p_ypos, v_action, v_taken_piece.piece_id);
+    select current_move into v_move_number from gm_games where game_id = p_game_id;
+    v_p1_in_check := is_king_in_check(p_game_id,1);
+    v_p2_in_check := is_king_in_check(p_game_id,2);
+    remove_king_moves(p_game_id);
+    
+    insert into gm_game_history(game_id,piece_id,player, old_xpos, old_ypos, new_xpos, new_ypos, action, action_piece, move_number, p1_in_check, p2_in_check)
+                    values(p_game_id, p_piece_id, v_player, v_piece.xpos, v_piece.ypos, p_xpos, p_ypos, v_action, v_taken_piece.piece_id, v_move_number, v_p1_in_check, v_p2_in_check);
   end move_piece;
 
  /*********************************************************************************************************************/
@@ -270,7 +299,6 @@ create or replace package body GM_PIECE_LIB as
   end calc_valid_squares;
   
   /*********************************************************************************************************************/
-  /*********************************************************************************************************************/
   function format_piece(p_game_id number, p_piece_id number, p_player_number number, p_piece_name nvarchar2, p_xpos number, p_ypos number) return nvarchar2 as
     v_piece_moves nvarchar2(1000);
     v_attacked_by nvarchar2(100);
@@ -375,7 +403,11 @@ create or replace package body GM_PIECE_LIB as
         end loop;      
       end if; /* if moves is not null */
     end loop;
-
+  end generate_piece_moves;
+  
+  procedure remove_king_moves(p_game_id number)
+  as
+  begin
     -- Kings cannot move into check - non-pawns attack along their lines of movement.
     for M in (
       select seq_id
@@ -385,8 +417,10 @@ create or replace package body GM_PIECE_LIB as
         and P.piece_move in (select NME.piece_move 
                               from gm_piece_moves NME 
                               where NME.game_id = p_game_id 
+                               and NME.piece_move != 'loc-' || P.xpos || '-' || P.ypos
                                 and NME.player = 3 - P.player and NME.piece_type_code <> 'PAWN' )
     ) loop
+      
       apex_collection.delete_member(p_collection_name => 'GAME_STATE', p_seq => M.seq_id);
     end loop;
     
@@ -396,36 +430,26 @@ create or replace package body GM_PIECE_LIB as
       from gm_piece_moves P
       where P.game_id = p_game_id
         and P.piece_type_code='KING' 
-        and P.piece_move in (select 'loc-' || xpos || '-' || ypos pawn_attacks
+        and P.piece_move in (select 'loc-' || xpos || '-' || ypos pawn_attack
                               from (
                                 select xpos-1 xpos, ypos+1 ypos, player from gm_board_pieces 
-                                where game_id=p_game_id and piece_type_code='PAWN'
+                                where game_id=p_game_id and piece_type_code='PAWN' and player=1
                                 union all
                                 select xpos+1 xpos, ypos+1 ypos, player from gm_board_pieces 
-                                where game_id=p_game_id and piece_type_code='PAWN'
-                              ) where xpos>0 and xpos <9  and player=3 - P.player)
+                                where game_id=p_game_id and piece_type_code='PAWN' and player=1
+                                union all
+                                select xpos-1 xpos, ypos-1 ypos, player from gm_board_pieces 
+                                where game_id=p_game_id and piece_type_code='PAWN' and player=2
+                                union all
+                                select xpos+1 xpos, ypos-1 ypos, player from gm_board_pieces 
+                                where game_id=p_game_id and piece_type_code='PAWN' and player=2
+
+                              ) where xpos>0 and xpos <9  and player=3 - P.player and 'loc-' || xpos || '-' || ypos != P.piece_move)
     ) loop
           apex_collection.delete_member(p_collection_name => 'GAME_STATE', p_seq => M.seq_id);
     end loop;
-    
-    -- If the King has no moves then it is CHECK-MATE!
-    select count(*) into v_move from gm_piece_moves where game_id = p_game_id and piece_type_code='KING' and player=1;
-    select xpos, ypos, piece_id into v_xpos, v_ypos, v_piece_id from gm_board_pieces where game_id = p_game_id and piece_type_code='KING' and player=1;
-    if v_move = 0 then
-      apex_collection.add_member(p_collection_name => 'GAME_STATE', 
-                                          p_c001 => p_game_id, 
-                                          p_c002 => 'KING',
-                                          p_c003 => 'checkmate',
-                                          p_c004 => calc_valid_squares(p_game_id, v_piece_id),
-    
-                                          p_n001 => v_piece_id,
-                                          p_n002 => 1,
-                                          p_n003 => p_game_id,
-                                          p_n004 => v_xpos,
-                                          P_n005 => v_ypos
-                                          );
-    end if;
-  end generate_piece_moves;
+
+  end remove_king_moves;
 
 end GM_PIECE_LIB;
 /

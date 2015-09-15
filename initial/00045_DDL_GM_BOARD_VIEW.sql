@@ -119,14 +119,14 @@ create or replace view gm_board_history_view as
                 case 
                 when action='MOVE' then 
                   '<td><div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || P.player || '" piece-name="' || lower(P.piece_type_code) || '"</div></td>' ||
-                  '<td>' || chr(96 + H.old_xpos)|| H.old_ypos || '-' || chr(96 + H.new_xpos) || H.new_ypos || '</td>'
+                  '<td>' || chr(96 + H.old_xpos)|| H.old_ypos || '-' || chr(96 + H.new_xpos) || H.new_ypos || (case when P.player=1 and H.p2_in_check=1 then '+' when P.player=2 and H.p1_in_check=1 then '+' end) || '</td>'
                 when action='CAPTURE' then 
                   '<td><div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || P.player || '" piece-name="' || lower(P.piece_type_code) || '"</div></td>' ||
-                  '<td>' || chr(96 + H.old_xpos)|| H.old_ypos || 'x' || chr(96 + H.new_xpos) || H.new_ypos ||
+                  '<td>' || chr(96 + H.old_xpos)|| H.old_ypos || 'x' || chr(96 + H.new_xpos) || H.new_ypos || (case when P.player=1 and H.p2_in_check=1 then '+' when P.player=2 and H.p1_in_check=1 then '+' end) ||
                   '<td><div class="history-piece" id="Hpiece-' || H.action_piece || '" player="' || AP.player || '" piece-name="' || lower(AP.piece_type_code) || '"</div></td>'
                 when action='CARD' then 
                   '<td><div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || P.player || '" piece-name="' || lower(H.action_parameter) || '"</div></td>' ||
-                  '<td>' || 'CARD-' || ac.gamedef_card_code ||
+                  '<td>' || 'CARD-' || ac.gamedef_card_code || (case when P.player=1 and H.p2_in_check=1 then '+' when P.player=2 and H.p1_in_check=1 then '+' end) ||
                   '<td><div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || P.player || '" piece-name="' || lower(P.piece_type_code) || '"</div></td>'
                 end     
                 || '</tr></table>'
