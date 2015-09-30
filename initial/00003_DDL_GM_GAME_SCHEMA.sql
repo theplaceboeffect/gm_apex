@@ -34,6 +34,7 @@ create table gm_boards
   board_type varchar2(20),
   max_rows number,
   max_cols number,
+  in_check_player number,
   
   constraint boards_id_pk primary key (game_id),
   constraint boards_game_id_fk foreign key (game_id) references gm_games(game_id)
