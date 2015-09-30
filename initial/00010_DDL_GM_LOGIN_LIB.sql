@@ -4,7 +4,7 @@ create or replace package GM_LOGIN_LIB as
   function login return nvarchar2;
   procedure ping;
   function username return varchar2;
-
+  procedure register(p_username varchar2, p_password varchar2, p_email_address varchar2);
 end;
 
 /
@@ -73,5 +73,21 @@ create or replace package body GM_LOGIN_LIB as
         return v_username;
     end;
 
+    procedure register(p_username varchar2, p_password varchar2, p_email_address varchar2) as
+      mail_result number;
+    begin
+      insert into gm_registered_users(user_name, user_password, user_email) values(p_username, p_password, p_email_address);
+      
+      APEX_MAIL.SEND(
+        p_to        => p_email_address,
+        p_from      => 'manweitam@gmail.com',
+        p_body      => to_clob('You have registered with username=' + p_username + ' password=' + p_password),
+--        p_body_html => to_clob('You have registered with username=<b>' + p_username + '</b> password=<b>' + p_password + '</b>'),
+        p_subj      => 'Welcome to Chess With Cards',
+        p_cc => 'manweitam@gmail.com',
+        p_bcc => 'manweitam@gmail.com',
+        p_replyto   => 'manweitam@gmail.com'
+        );
+    end;
 end GM_LOGIN_LIB;
 /

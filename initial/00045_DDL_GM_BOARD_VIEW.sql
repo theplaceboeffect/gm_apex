@@ -127,7 +127,7 @@ create or replace view gm_board_history_view as
                 when action='CARD' then 
                   '<td><div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || P.player || '" piece-name="' || lower(H.action_parameter) || '"</div></td>' ||
                   '<td>' || 'CARD-' || ac.gamedef_card_code || (case when P.player=1 and H.p2_in_check=1 then '+' when P.player=2 and H.p1_in_check=1 then '+' end) ||
-                  '<td><div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || P.player || '" piece-name="' || lower(P.piece_type_code) || '"</div></td>'
+                  '<td><div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || P.player || '" piece-name="H' || lower(P.piece_type_code) || '"</div></td>'
                 end     
                 || '</tr></table>'
               history_item

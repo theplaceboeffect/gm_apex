@@ -1,6 +1,28 @@
 /**** GM_ONLINE_USERS ****/
 drop table gm_online_users;
 drop sequence gm_online_users_seq;
+drop table gm_registered_users;
+drop sequence gm_registered_users_seq;
+/
+create table gm_registered_users
+(
+  user_id number,
+  user_name varchar2(50),
+  user_password varchar2(50),
+  user_email varchar2(50)
+);
+/
+create sequence gm_registered_users_seq;
+/
+set define off;
+create or replace trigger bi_gm_registered_users
+  before insert on gm_registered_users
+  for each row
+begin
+  if :new.user_id is null then
+    select gm_registered_users_seq.nextval into :new.user_id from dual;
+  end if;
+end bi_gm_registered_users;
 /
 
 CREATE TABLE  "GM_ONLINE_USERS" 

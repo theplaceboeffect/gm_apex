@@ -348,7 +348,6 @@ create or replace package body GM_PIECE_LIB as
   end format_piece;
 
   /*********************************************************************************************************************/
-
   procedure AddMoveFor(p_game_id number, p_piece gm_board_pieces%rowtype, p_xpos number, p_ypos number) as
   begin
     apex_collection.add_member(p_collection_name => 'GAME_STATE', p_n001=>p_game_id, 
@@ -405,6 +404,7 @@ create or replace package body GM_PIECE_LIB as
     end loop;
   end generate_piece_moves;
   
+  /*************************************************************************************************************/
   procedure remove_king_moves(p_game_id number)
   as
   begin

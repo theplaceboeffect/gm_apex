@@ -288,6 +288,28 @@ create table gm_gamedef_css
 /**** GM_ONLINE_USERS ****/
 drop table gm_online_users;
 drop sequence gm_online_users_seq;
+drop table gm_registered_users;
+drop sequence gm_registered_users_seq;
+/
+create table gm_registered_users
+(
+  user_id number,
+  user_name varchar2(50),
+  user_password varchar2(50),
+  user_email varchar2(50)
+);
+/
+create sequence gm_registered_users_seq;
+/
+set define off;
+create or replace trigger bi_gm_registered_users
+  before insert on gm_registered_users
+  for each row
+begin
+  if :new.user_id is null then
+    select gm_registered_users_seq.nextval into :new.user_id from dual;
+  end if;
+end bi_gm_registered_users;
 /
 
 CREATE TABLE  "GM_ONLINE_USERS" 
@@ -434,7 +456,7 @@ create or replace package GM_LOGIN_LIB as
   function login return nvarchar2;
   procedure ping;
   function username return varchar2;
-
+  procedure register(p_username varchar2, p_password varchar2, p_email_address varchar2);
 end;
 
 /
@@ -503,6 +525,22 @@ create or replace package body GM_LOGIN_LIB as
         return v_username;
     end;
 
+    procedure register(p_username varchar2, p_password varchar2, p_email_address varchar2) as
+      mail_result number;
+    begin
+      insert into gm_registered_users(user_name, user_password, user_email) values(p_username, p_password, p_email_address);
+      
+      APEX_MAIL.SEND(
+        p_to        => p_email_address,
+        p_from      => 'manweitam@gmail.com',
+        p_body      => to_clob('You have registered with username=' + p_username + ' password=' + p_password),
+--        p_body_html => to_clob('You have registered with username=<b>' + p_username + '</b> password=<b>' + p_password + '</b>'),
+        p_subj      => 'Welcome to Chess With Cards',
+        p_cc => 'manweitam@gmail.com',
+        p_bcc => 'manweitam@gmail.com',
+        p_replyto   => 'manweitam@gmail.com'
+        );
+    end;
 end GM_LOGIN_LIB;
 /
 /**** GM_CHAT_LIB ****/
@@ -764,15 +802,15 @@ create or replace view gm_board_history_view as
                 case 
                 when action='MOVE' then 
                   '<td><div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || P.player || '" piece-name="' || lower(P.piece_type_code) || '"</div></td>' ||
-                  '<td>' || chr(96 + H.old_xpos)|| H.old_ypos || '-' || chr(96 + H.new_xpos) || H.new_ypos || '</td>'
+                  '<td>' || chr(96 + H.old_xpos)|| H.old_ypos || '-' || chr(96 + H.new_xpos) || H.new_ypos || (case when P.player=1 and H.p2_in_check=1 then '+' when P.player=2 and H.p1_in_check=1 then '+' end) || '</td>'
                 when action='CAPTURE' then 
                   '<td><div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || P.player || '" piece-name="' || lower(P.piece_type_code) || '"</div></td>' ||
-                  '<td>' || chr(96 + H.old_xpos)|| H.old_ypos || 'x' || chr(96 + H.new_xpos) || H.new_ypos ||
+                  '<td>' || chr(96 + H.old_xpos)|| H.old_ypos || 'x' || chr(96 + H.new_xpos) || H.new_ypos || (case when P.player=1 and H.p2_in_check=1 then '+' when P.player=2 and H.p1_in_check=1 then '+' end) ||
                   '<td><div class="history-piece" id="Hpiece-' || H.action_piece || '" player="' || AP.player || '" piece-name="' || lower(AP.piece_type_code) || '"</div></td>'
                 when action='CARD' then 
                   '<td><div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || P.player || '" piece-name="' || lower(H.action_parameter) || '"</div></td>' ||
-                  '<td>' || 'CARD-' || ac.gamedef_card_code ||
-                  '<td><div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || P.player || '" piece-name="' || lower(P.piece_type_code) || '"</div></td>'
+                  '<td>' || 'CARD-' || ac.gamedef_card_code || (case when P.player=1 and H.p2_in_check=1 then '+' when P.player=2 and H.p1_in_check=1 then '+' end) ||
+                  '<td><div class="history-piece" id="Hpiece-' || H.piece_id || '" player="' || P.player || '" piece-name="H' || lower(P.piece_type_code) || '"</div></td>'
                 end     
                 || '</tr></table>'
               history_item
@@ -834,7 +872,7 @@ create or replace package GM_PIECE_LIB as
   procedure generate_piece_moves(p_game_id number);
   
     function is_king_in_check(p_game_id number, p_player number) return number;
-
+  procedure remove_king_moves(p_game_id number);
 
 end GM_PIECE_LIB;
 
@@ -847,11 +885,11 @@ create or replace package body GM_PIECE_LIB as
     in_check number;
   begin
       select count(*) into in_check 
-      from dual where exists (  select K.piece_type_code, K.player
+      from dual where exists (  select K.piece_type_code, K.player, ATK.piece_type_code, ATK.player
                                   from gm_piece_moves K
                                   join gm_piece_moves ATK on K.game_id=ATK.game_id and K.player != ATK.player and 'loc-' || K.xpos || '-' || K.ypos = ATK.piece_move 
-                                  where K.game_id=p_game_id and K.piece_type_code='KING' and K.player = 1
-                                  group by K.piece_type_code, K.player
+                                  where K.game_id=p_game_id and K.piece_type_code='KING' and K.player = p_player and K.piece_move='loc-' || K.xpos || '-' || K.ypos
+
                                 );
       return in_check;
   end is_king_in_check;
@@ -926,6 +964,7 @@ create or replace package body GM_PIECE_LIB as
     select current_move into v_move_number from gm_games where game_id = p_game_id;
     v_p1_in_check := is_king_in_check(p_game_id,1);
     v_p2_in_check := is_king_in_check(p_game_id,2);
+    remove_king_moves(p_game_id);
     
     insert into gm_game_history(game_id,piece_id,player, old_xpos, old_ypos, new_xpos, new_ypos, action, action_piece, move_number, p1_in_check, p2_in_check)
                     values(p_game_id, p_piece_id, v_player, v_piece.xpos, v_piece.ypos, p_xpos, p_ypos, v_action, v_taken_piece.piece_id, v_move_number, v_p1_in_check, v_p2_in_check);
@@ -1173,7 +1212,6 @@ create or replace package body GM_PIECE_LIB as
   end format_piece;
 
   /*********************************************************************************************************************/
-
   procedure AddMoveFor(p_game_id number, p_piece gm_board_pieces%rowtype, p_xpos number, p_ypos number) as
   begin
     apex_collection.add_member(p_collection_name => 'GAME_STATE', p_n001=>p_game_id, 
@@ -1228,7 +1266,12 @@ create or replace package body GM_PIECE_LIB as
         end loop;      
       end if; /* if moves is not null */
     end loop;
-
+  end generate_piece_moves;
+  
+  /*************************************************************************************************************/
+  procedure remove_king_moves(p_game_id number)
+  as
+  begin
     -- Kings cannot move into check - non-pawns attack along their lines of movement.
     for M in (
       select seq_id
@@ -1238,8 +1281,10 @@ create or replace package body GM_PIECE_LIB as
         and P.piece_move in (select NME.piece_move 
                               from gm_piece_moves NME 
                               where NME.game_id = p_game_id 
+                               and NME.piece_move != 'loc-' || P.xpos || '-' || P.ypos
                                 and NME.player = 3 - P.player and NME.piece_type_code <> 'PAWN' )
     ) loop
+      
       apex_collection.delete_member(p_collection_name => 'GAME_STATE', p_seq => M.seq_id);
     end loop;
     
@@ -1249,19 +1294,26 @@ create or replace package body GM_PIECE_LIB as
       from gm_piece_moves P
       where P.game_id = p_game_id
         and P.piece_type_code='KING' 
-        and P.piece_move in (select 'loc-' || xpos || '-' || ypos pawn_attacks
+        and P.piece_move in (select 'loc-' || xpos || '-' || ypos pawn_attack
                               from (
                                 select xpos-1 xpos, ypos+1 ypos, player from gm_board_pieces 
-                                where game_id=p_game_id and piece_type_code='PAWN'
+                                where game_id=p_game_id and piece_type_code='PAWN' and player=1
                                 union all
                                 select xpos+1 xpos, ypos+1 ypos, player from gm_board_pieces 
-                                where game_id=p_game_id and piece_type_code='PAWN'
-                              ) where xpos>0 and xpos <9  and player=3 - P.player)
+                                where game_id=p_game_id and piece_type_code='PAWN' and player=1
+                                union all
+                                select xpos-1 xpos, ypos-1 ypos, player from gm_board_pieces 
+                                where game_id=p_game_id and piece_type_code='PAWN' and player=2
+                                union all
+                                select xpos+1 xpos, ypos-1 ypos, player from gm_board_pieces 
+                                where game_id=p_game_id and piece_type_code='PAWN' and player=2
+
+                              ) where xpos>0 and xpos <9  and player=3 - P.player and 'loc-' || xpos || '-' || ypos != P.piece_move)
     ) loop
           apex_collection.delete_member(p_collection_name => 'GAME_STATE', p_seq => M.seq_id);
     end loop;
 
-  end generate_piece_moves;
+  end remove_king_moves;
 
 end GM_PIECE_LIB;
 /
@@ -2638,9 +2690,13 @@ end;
 delete from gm_gamedef_piece_types where piece_type_code='LOCK';
 insert into gm_gamedef_piece_types(gamedef_code, piece_type_code, piece_name, piece_notation, can_jump,  n_steps_per_move, first_move, directions_allowed, capture_directions, move_directions  ) 
                                     values('CHESS', 'LOCK', 'lock', 'X', 0, 0, null, null, null, 0);
+-- Board icon for lock
 delete from gm_gamedef_css where css_selector='[player="3"][piece-name="lock"]:before';
-
 insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '[player="3"][piece-name="lock"]:before' ,'{ font-family: FontAwesome; content: "\f023"; color: #F17171; font-size: 50px; position: absolute; top: 19px; left: 8px; }',100);
+
+-- History icon for lock
+delete from gm_gamedef_css where css_selector='[player="3"][piece-name="Hlock"]:before';
+insert into gm_gamedef_css(gamedef_code, css_selector, css_definition, css_order) values('CHESS', '[player="3"][piece-name="Hlock"]:before' ,'{ font-family: FontAwesome; content: "\f023"; color: #F17171; font-size: 20px;  }',100);
 commit;
 /
 
@@ -2722,6 +2778,8 @@ create or replace package body gm_card_lib as
     v_card_id number;
     v_piece_id number;
     v_player number;
+    v_p1_in_check number;
+    v_p2_in_check number;
     v_old_piece_type_code varchar(10);
     v_move_number number;
     card_def gm_gamedef_cards%rowtype;
@@ -2774,6 +2832,17 @@ create or replace package body gm_card_lib as
     set player = 0
     where C.game_id = p_game_id and C.card_id = v_card_id;
  */
+ 
+     -- generate next set of moves
+    gm_piece_lib.generate_piece_moves(p_game_id);
+    
+    -- check
+    -- update history table.
+    select current_move into v_move_number from gm_games where game_id = p_game_id;
+    v_p1_in_check := gm_piece_lib.is_king_in_check(p_game_id,1);
+    v_p2_in_check := gm_piece_lib.is_king_in_check(p_game_id,2);
+    gm_piece_lib.remove_king_moves(p_game_id);
+
     -- Record card use.
     select current_move into v_move_number from gm_games where game_id = p_game_id;
     insert into gm_game_history(game_id,  piece_id, card_id, player, old_xpos, old_ypos, new_xpos, new_ypos, action, action_piece, action_parameter, move_number)
