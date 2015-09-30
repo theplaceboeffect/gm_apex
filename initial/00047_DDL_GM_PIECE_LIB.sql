@@ -7,8 +7,7 @@ create or replace package GM_PIECE_LIB as
   function calc_valid_squares(p_game_id number, p_piece_id number) return varchar2;
   procedure generate_piece_moves(p_game_id number);
   
-    function is_king_in_check(p_game_id number, p_player number) return number;
-  procedure remove_king_moves(p_game_id number);
+  function is_king_in_check(p_game_id number, p_player number) return number;
 
 end GM_PIECE_LIB;
 
@@ -93,15 +92,25 @@ create or replace package body GM_PIECE_LIB as
       and not exists (select * from gm_board_pieces where game_id = p_game_id and xpos=p_xpos and ypos=p_ypos);
 
     -- generate next set of moves
+    /*
     generate_piece_moves(p_game_id);
+    remove_king_moves(p_game_id);
+    */
     
     -- check
     -- update history table.
     select current_move into v_move_number from gm_games where game_id = p_game_id;
     v_p1_in_check := is_king_in_check(p_game_id,1);
     v_p2_in_check := is_king_in_check(p_game_id,2);
-    remove_king_moves(p_game_id);
-    
+
+    if v_p1_in_check > 0 then
+      update gm_boards set in_check_player = 1 where game_id = p_game_id;
+    elsif v_p2_in_check > 0 then
+      update gm_boards set in_check_player = 2 where game_id = p_game_id;
+    else
+      update gm_boards set in_check_player = null where game_id = p_game_id;
+    end if;
+
     insert into gm_game_history(game_id,piece_id,player, old_xpos, old_ypos, new_xpos, new_ypos, action, action_piece, move_number, p1_in_check, p2_in_check)
                     values(p_game_id, p_piece_id, v_player, v_piece.xpos, v_piece.ypos, p_xpos, p_ypos, v_action, v_taken_piece.piece_id, v_move_number, v_p1_in_check, v_p2_in_check);
   end move_piece;
@@ -116,20 +125,20 @@ create or replace package body GM_PIECE_LIB as
     stop_moving boolean;
   begin
     stop_moving := false;
-    dbms_output.put_line('  move_in_direction:' || p_max_distance_per_move || ':Delta:' || p_x_steps || ',' || p_y_steps || ' New:' || new_xpos || ',' || new_ypos);
+    --dbms_output.put_line('  move_in_direction:' || p_max_distance_per_move || ':Delta:' || p_x_steps || ',' || p_y_steps || ' New:' || new_xpos || ',' || new_ypos);
     for step in 1..p_max_distance_per_move loop
       new_xpos := nvl(new_xpos, p_piece.xpos) + p_x_steps;
       new_ypos := nvl(new_ypos, p_piece.ypos) + p_y_steps;
       
       if not stop_moving then
-        dbms_output.put_line('  step-' || step || ':' || new_xpos || ',' || new_ypos);
+        --dbms_output.put_line('  step-' || step || ':' || new_xpos || ',' || new_ypos);
 
         -- if out of bounds then don't move further
         if new_xpos < 1 or new_xpos > 8 or new_ypos < 1 or new_ypos > 8 then
           new_position:='';
           ended_on:='edge';
           stop_moving := true;
-          dbms_output.put_line('  Returning: landed on edge @ '|| new_xpos || ',' || new_ypos);
+          --dbms_output.put_line('  Returning: landed on edge @ '|| new_xpos || ',' || new_ypos);
         else
           select max(player) into n from gm_board_pieces where game_id=p_piece.game_id and xpos=new_xpos and ypos=new_ypos;
           -- occupied
@@ -138,13 +147,13 @@ create or replace package body GM_PIECE_LIB as
             stop_moving := true;
             -- occupied by another player's piece and NOT a system piece (e.g. Lock) ** TODO: Check for capture direction **
             if n <> p_piece.player and n <> 3 then
-              dbms_output.put_line('test capture:' || move_step || '-' || p_piece_type.capture_directions || ' test=' || instr(nvl(p_piece_type.capture_directions,move_step),move_step));
+              --dbms_output.put_line('test capture:' || move_step || '-' || p_piece_type.capture_directions || ' test=' || instr(nvl(p_piece_type.capture_directions,move_step),move_step));
               if instr(nvl(p_piece_type.capture_directions,move_step),move_step) > 0 then
-                dbms_output.put_line('allow capture');
+                --dbms_output.put_line('allow capture');
                 new_position:= ':loc-' || new_xpos || '-' || new_ypos || ':';
                 ended_on:='nme';
               else
-                apex_debug_message.log_message('disallow capture',true,1);
+                --apex_debug_message.log_message('disallow capture',true,1);
                 new_position:='';
                 ended_on:='xcap';
               end if;
@@ -152,7 +161,7 @@ create or replace package body GM_PIECE_LIB as
                 new_position:='';
                 ended_on:='own';
             end if;
-            dbms_output.put_line('  Returning: landed on ' || ended_on || ' @ '|| new_xpos || ',' || new_ypos);
+            --dbms_output.put_line('  Returning: landed on ' || ended_on || ' @ '|| new_xpos || ',' || new_ypos);
             stop_moving := true;
           else
             ended_on:='';
@@ -174,14 +183,14 @@ create or replace package body GM_PIECE_LIB as
         null;
       elsif stop_moving and ended_on = 'nme' then
         return_positions := return_positions || new_position;
-        dbms_output.put_line('  NewLoc+Capture: @ '|| new_xpos || ',' || new_ypos);   
+        --dbms_output.put_line('  NewLoc+Capture: @ '|| new_xpos || ',' || new_ypos);   
         exit;
       elsif not stop_moving then
         return_positions := return_positions || new_position;
-        dbms_output.put_line('  NewLoc: @ '|| new_xpos || ',' || new_ypos);
+        --dbms_output.put_line('  NewLoc: @ '|| new_xpos || ',' || new_ypos);
       end if;
     end loop; 
-    dbms_output.put_line('RETURNING: ' || return_positions);
+    --dbms_output.put_line('RETURNING: ' || return_positions);
     return return_positions;
   end move_in_direction;
 
@@ -245,22 +254,22 @@ create or replace package body GM_PIECE_LIB as
     
     if n_moves_made_by_piece = 0 and v_piece_type.first_move is not null then
       v_move_choices := apex_util.string_to_table(v_piece_type.first_move,':');
-      dbms_output.put_line('---> Number of choices: ' || v_move_choices.count || ' from "' || v_piece_type.first_move || '"' );
+      --dbms_output.put_line('---> Number of choices: ' || v_move_choices.count || ' from "' || v_piece_type.first_move || '"' );
     else
       v_move_choices := apex_util.string_to_table(v_directions_allowed,':');
-      dbms_output.put_line('---> Number of choices: ' || v_move_choices.count || ' from "' || v_directions_allowed || '"' );
+      --dbms_output.put_line('---> Number of choices: ' || v_move_choices.count || ' from "' || v_directions_allowed || '"' );
     end if;
     
     for z in 1..v_move_choices.count loop
       move_choice := v_move_choices(z);
       new_x := null;
       new_y := null;
-      dbms_output.put_line('');
-      dbms_output.put_line('[DEBUG0: move_choice=' || move_choice || ']**');
+      --dbms_output.put_line('');
+      --dbms_output.put_line('[DEBUG0: move_choice=' || move_choice || ']**');
       for c in 1..length(move_choice) loop
         move_step := substr(move_choice,c,1);
         
-        dbms_output.put_line('[DEBUG1:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
+        --dbms_output.put_line('[DEBUG1:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' ended_on=' || ended_on);
         if move_step = '^' then
           next_position :=  move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, 0, distance_per_step, new_x, new_y, ended_on);
         elsif move_step = 'v'then        
@@ -279,16 +288,16 @@ create or replace package body GM_PIECE_LIB as
           next_position :=  move_in_direction(move_step, v_piece, v_piece_type, max_distance_per_move, (distance_per_step), (-distance_per_step), new_x, new_y, ended_on);
         end if;
         v_positions := v_positions || next_position;
-        dbms_output.put_line('[DEBUG1:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' added=' || next_position || ' ended_on=' || ended_on);
+        --dbms_output.put_line('[DEBUG1:move_step-' || c || '=' || move_step || new_x || ',' || new_y || '] v_positions=' || v_positions || ' added=' || next_position || ' ended_on=' || ended_on);
       end loop; -- for c
       
-      dbms_output.put_line('DEBUG2:ended_on=' || ended_on);      
+      --dbms_output.put_line('DEBUG2:ended_on=' || ended_on);      
       if (v_piece_type.can_jump = 1 and ended_on = 'nme') or ended_on is null then
         v_positions := v_positions || ':loc-' || new_x || '-' || new_y;
             
       end if;
       
-      dbms_output.put_line('DEBUG3:v_positions=' || v_positions);
+      --dbms_output.put_line('DEBUG3:v_positions=' || v_positions);
     end loop; -- move_choice
   
     -- For each move combination (: - separated)
@@ -356,6 +365,54 @@ create or replace package body GM_PIECE_LIB as
 
   end;
 
+  
+  /*************************************************************************************************************/
+  procedure remove_king_moves(p_game_id number)
+  as
+  begin
+    -- Kings cannot move into check - non-pawns attack along their lines of movement.
+    for M in (
+      select seq_id
+      from gm_piece_moves P
+      where P.game_id = p_game_id
+        and P.piece_type_code='KING' 
+        and P.piece_move in (select NME.piece_move 
+                              from gm_piece_moves NME 
+                              where NME.game_id = p_game_id 
+                               and NME.piece_move != 'loc-' || P.xpos || '-' || P.ypos
+                                and NME.player = 3 - P.player and NME.piece_type_code <> 'PAWN' )
+    ) loop
+      
+      apex_collection.delete_member(p_collection_name => 'GAME_STATE', p_seq => M.seq_id);
+    end loop;
+    
+    -- Kings cannot move into check -- pawns have diagonal attacks
+    for M in (
+      select seq_id
+      from gm_piece_moves P
+      where P.game_id = p_game_id
+        and P.piece_type_code='KING' 
+        and P.piece_move in (select 'loc-' || xpos || '-' || ypos pawn_attack
+                              from (
+                                select xpos-1 xpos, ypos+1 ypos, player from gm_board_pieces 
+                                where game_id=p_game_id and piece_type_code='PAWN' and player=1
+                                union all
+                                select xpos+1 xpos, ypos+1 ypos, player from gm_board_pieces 
+                                where game_id=p_game_id and piece_type_code='PAWN' and player=1
+                                union all
+                                select xpos-1 xpos, ypos-1 ypos, player from gm_board_pieces 
+                                where game_id=p_game_id and piece_type_code='PAWN' and player=2
+                                union all
+                                select xpos+1 xpos, ypos-1 ypos, player from gm_board_pieces 
+                                where game_id=p_game_id and piece_type_code='PAWN' and player=2
+
+                              ) where xpos>0 and xpos <9  and player=3 - P.player) -- and 'loc-' || xpos || '-' || ypos != P.piece_move)
+    ) loop
+          apex_collection.delete_member(p_collection_name => 'GAME_STATE', p_seq => M.seq_id);
+    end loop;
+
+  end remove_king_moves;
+
   /*************************************************************************************************************/
   procedure generate_piece_moves(p_game_id number) as
     v_moves varchar(1000);
@@ -402,54 +459,9 @@ create or replace package body GM_PIECE_LIB as
         end loop;      
       end if; /* if moves is not null */
     end loop;
-  end generate_piece_moves;
-  
-  /*************************************************************************************************************/
-  procedure remove_king_moves(p_game_id number)
-  as
-  begin
-    -- Kings cannot move into check - non-pawns attack along their lines of movement.
-    for M in (
-      select seq_id
-      from gm_piece_moves P
-      where P.game_id = p_game_id
-        and P.piece_type_code='KING' 
-        and P.piece_move in (select NME.piece_move 
-                              from gm_piece_moves NME 
-                              where NME.game_id = p_game_id 
-                               and NME.piece_move != 'loc-' || P.xpos || '-' || P.ypos
-                                and NME.player = 3 - P.player and NME.piece_type_code <> 'PAWN' )
-    ) loop
-      
-      apex_collection.delete_member(p_collection_name => 'GAME_STATE', p_seq => M.seq_id);
-    end loop;
     
-    -- Kings cannot move into check -- pawns have diagonal attacks
-    for M in (
-      select seq_id
-      from gm_piece_moves P
-      where P.game_id = p_game_id
-        and P.piece_type_code='KING' 
-        and P.piece_move in (select 'loc-' || xpos || '-' || ypos pawn_attack
-                              from (
-                                select xpos-1 xpos, ypos+1 ypos, player from gm_board_pieces 
-                                where game_id=p_game_id and piece_type_code='PAWN' and player=1
-                                union all
-                                select xpos+1 xpos, ypos+1 ypos, player from gm_board_pieces 
-                                where game_id=p_game_id and piece_type_code='PAWN' and player=1
-                                union all
-                                select xpos-1 xpos, ypos-1 ypos, player from gm_board_pieces 
-                                where game_id=p_game_id and piece_type_code='PAWN' and player=2
-                                union all
-                                select xpos+1 xpos, ypos-1 ypos, player from gm_board_pieces 
-                                where game_id=p_game_id and piece_type_code='PAWN' and player=2
-
-                              ) where xpos>0 and xpos <9  and player=3 - P.player and 'loc-' || xpos || '-' || ypos != P.piece_move)
-    ) loop
-          apex_collection.delete_member(p_collection_name => 'GAME_STATE', p_seq => M.seq_id);
-    end loop;
-
-  end remove_king_moves;
+    remove_king_moves(p_game_id);
+  end generate_piece_moves;
 
 end GM_PIECE_LIB;
 /
