@@ -1,6 +1,6 @@
 /**** GENERAL CSS ****/
 
-delete from gm_css;
+delete from gm_css where css_id in (110,120,121,122,129,130,131,132,133,140,141,142);
 /
 
 
